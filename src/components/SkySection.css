@@ -1,0 +1,234 @@
+.sky-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sky-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+.sky-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+
+.sky-toggle:hover { background: var(--accent-soft); }
+
+.sky-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sky-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sky-glyph {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sky-summary {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sky-summary strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sky-summary.sky-countdown {
+  font-size: 13px;
+  color: var(--text);
+  font-feature-settings: "tnum";
+}
+
+.sky-summary.sky-countdown strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Sky hero block — 96px celestial visual + caption stack at the top
+   of the expanded body. Moon at night, Sun in day. */
+.sky-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sky-hero-visual {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+}
+
+.sky-hero-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sky-hero-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.sky-hero-meta {
+  font-size: 14px;
+  color: var(--text);
+  font-feature-settings: "tnum";
+  line-height: 1.3;
+}
+
+.sky-hero-meta-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 2px;
+}
+
+.sky-chevron {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.sky-card.expanded .sky-chevron {
+  transform: rotate(90deg);
+}
+
+.sky-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.sky-group { margin-bottom: 16px; }
+.sky-group:last-child { margin-bottom: 0; }
+
+.sky-group-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.sky-kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+}
+
+.sky-kv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sky-kv-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.sky-kv-value {
+  font-size: 13px;
+  color: var(--text);
+  font-feature-settings: "tnum";
+}
+
+.sky-row {
+  display: grid;
+  grid-template-columns: 1fr 36px 1fr;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.sky-row:last-child { border-bottom: none; }
+
+.sky-row-name {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sky-row-dir {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.sky-row-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.sky-row-meta.bright { color: var(--text); }
+.sky-row-meta.dim { color: var(--text-faint); }
+
+.sky-empty {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 6px 0;
+}

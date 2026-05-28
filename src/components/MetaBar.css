@@ -1,0 +1,28 @@
+.meta-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 0 4px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--good);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--good);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

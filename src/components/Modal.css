@@ -1,0 +1,140 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  /* --drag-y is mutated during pointer drag to translate the modal with
+     the user's finger; defaults to 0 so static layout is unaffected. */
+  --drag-y: 0px;
+  transform: translateX(-50%) translateY(100%);
+  background: var(--surface);
+  width: 100%;
+  max-width: 480px;
+  /* dvh adjusts as iOS Safari's address bar appears/disappears so the modal
+     bottom never gets pushed below the visible viewport. vh fallback for
+     pre-Chrome-108 / pre-Safari-15.4 browsers. Modal.tsx may further
+     override max-height + bottom inline when the on-screen keyboard
+     shrinks visualViewport (iOS/Android keyboard awareness). */
+  max-height: 85vh;
+  max-height: 85dvh;
+  border-radius: 16px 16px 0 0;
+  z-index: 101;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  /* Flex layout so the drag-zone stays anchored at the top while the
+     body scrolls independently. Enables position: sticky inside .modal-body
+     to stick to the body's scroll container, not the page. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.modal.open {
+  transform: translateX(-50%) translateY(var(--drag-y));
+}
+
+.modal-drag-zone {
+  /* Captures swipe-down-to-dismiss gestures across the entire top of the
+     sheet (handle + header). touch-action: none disables native scroll
+     so the pointer handlers receive the move events instead.
+     flex: 0 0 auto keeps it pinned at top while body scrolls. */
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  flex: 0 0 auto;
+}
+
+.modal-drag-zone:active {
+  cursor: grabbing;
+}
+
+.modal-handle {
+  /* Wider + slightly thicker than the original 36×4 — reads more clearly
+     as a drag affordance on small screens. The surrounding .modal-drag-zone
+     already provides a large pointer hit area (handle + header band). */
+  width: 60px;
+  height: 5px;
+  background: var(--text-faint);
+  border-radius: 100px;
+  margin: 14px auto 4px;
+  opacity: 0.85;
+}
+
+.modal-header {
+  padding: 18px 20px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+
+.modal-title::before {
+  content: '// ';
+  color: var(--accent);
+}
+
+.modal-close {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+}
+
+.modal-body {
+  padding: 0 20px 32px;
+  contain: content;
+  /* Body is now the actual scroll container — drag-zone stays pinned above
+     it. Hides scrollbar visually on touch + desktop alike. */
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.modal-body::-webkit-scrollbar {
+  display: none;
+}

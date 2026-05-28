@@ -1,0 +1,88 @@
+.section {
+  margin-bottom: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px 8px;
+}
+
+.section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.section-title::before {
+  content: '// ';
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.hourly-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 -14px;
+  padding: 2px 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hourly-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.hour-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 6px 10px;
+  text-align: center;
+  min-width: 64px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.hour-card:hover {
+  border-color: var(--accent);
+}
+
+.hour-card.now {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.hour-time {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hour-card.now .hour-time {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.hour-icon {
+  font-size: 32px;
+  margin: 4px 0;
+  line-height: 1;
+  color: var(--accent);
+  display: flex;
+  justify-content: center;
+}
+
+.hour-temp {
+  font-size: 14px;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+  color: var(--text);
+}

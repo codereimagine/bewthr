@@ -1,0 +1,269 @@
+/* Full-screen Places view. Replaces the bottom-sheet modal for search.
+   No body scroll-lock is applied — the view itself covers the viewport,
+   so the underlying main app cannot receive touches. body { overscroll-
+   behavior: none } is already set globally in index.css, preventing
+   pull-to-refresh from chaining through. */
+
+.places-view {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  /* Hidden state: faded out + pointer-events:none so the off-screen
+     view doesn't intercept taps under it. */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease-out;
+}
+
+.places-view.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Header — back-arrow left, title centered, X close right. Both
+   buttons close the view. */
+.places-view-header {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.places-view-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-align: center;
+}
+
+.places-view-title::before {
+  content: '// ';
+  color: var(--accent);
+}
+
+.places-view-icon-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-family: var(--mono);
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.places-view-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* :hover restricted to real pointer devices. Belt-and-suspenders —
+   the full-screen pattern alone defeats the iOS phantom-hover bug,
+   but keeping touch out of :hover is the right cross-platform call
+   for any newly-introduced interactive element. */
+@media (hover: hover) {
+  .places-view-icon-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+/* Search input — full width, top-anchored just under the header.
+   font-size: 16px to prevent Android Chrome auto-zoom on focus. */
+.places-view-form {
+  flex: 0 0 auto;
+  padding: 12px 14px 8px;
+}
+
+.places-view-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: var(--display);
+}
+
+.places-view-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.places-view-input::placeholder {
+  color: var(--text-faint);
+}
+
+/* Two scroll containers — results on top, saved on bottom — keeps
+   the two lists from intermixing on long search returns. Each has
+   overscroll-behavior:contain so a scroll past either end won't chain
+   to the parent. flex: 1 1 0 splits remaining space evenly; results
+   gets a slightly larger share via larger flex-grow. */
+.places-view-results {
+  flex: 3 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 14px 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.places-view-results::-webkit-scrollbar {
+  display: none;
+}
+
+.places-view-saved {
+  flex: 2 1 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  min-height: 120px;
+}
+
+.places-view-section-title {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 12px 14px 8px;
+  font-weight: 600;
+}
+
+.places-view-saved-list {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 14px 14px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.places-view-saved-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Search result button — same visual as the previous .search-result
+   but with the button reset baked in so the underlying <button> doesn't
+   inherit any user-agent styling. */
+.places-view-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.places-view-result:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .places-view-result:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.places-view-result-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.places-view-result-region {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.places-view-saved-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.places-view-saved-name {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.places-view-saved-region {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.places-view-delete {
+  background: none;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background 0.15s, color 0.15s;
+}
+
+@media (hover: hover) {
+  .places-view-delete:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+.places-view-empty {
+  color: var(--text-dim);
+  padding: 20px 12px;
+  font-size: 13px;
+  text-align: center;
+  font-family: var(--mono);
+}
+
+.places-view-empty-error {
+  color: var(--danger);
+}
+
+.places-view-hint {
+  color: var(--text-faint);
+}

@@ -1,0 +1,138 @@
+/*
+ * Hero-contained atmosphere — focal animation INSIDE the hero card.
+ * Sized for ~360x300px container. Travel distances use fixed px values
+ * that comfortably exceed expected hero height. Lightning is intentionally
+ * not present here (full-page only, see Atmosphere.tsx).
+ */
+
+.hero-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+/* ── Stars (clear night) ───────────────────────────────────────── */
+
+.hero-atmosphere .hero-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  top: var(--top);
+  left: var(--left);
+  animation: hero-twinkle var(--dur) ease-in-out var(--delay) infinite;
+  will-change: opacity;
+}
+
+.hero-atmosphere .hero-star.lg {
+  width: 3px;
+  height: 3px;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
+.hero-atmosphere[data-mode="reduced"] .hero-star {
+  animation: none;
+  opacity: 0.6;
+}
+
+@keyframes hero-twinkle {
+  0%, 100% { opacity: 0.22; }
+  50%      { opacity: 1.00; }
+}
+
+/* ── Clouds (cloudy / rain / snow / storm) ─────────────────────── */
+
+.hero-atmosphere .hero-cloud {
+  position: absolute;
+  width: 200px;
+  height: 90px;
+  top: var(--top);
+  left: -30%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse closest-side,
+                rgba(255, 255, 255, 0.18),
+                rgba(255, 255, 255, 0) 70%);
+  filter: blur(18px);
+  animation: hero-cloud-drift var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+.hero-atmosphere .hero-cloud.cool {
+  background: radial-gradient(ellipse closest-side,
+                rgba(180, 200, 230, 0.20),
+                rgba(180, 200, 230, 0) 70%);
+}
+
+.hero-atmosphere .hero-cloud.cold {
+  background: radial-gradient(ellipse closest-side,
+                rgba(220, 230, 250, 0.22),
+                rgba(220, 230, 250, 0) 70%);
+}
+
+@keyframes hero-cloud-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(520px); }
+}
+
+/* ── Rain (drizzle / rain / showers / storm) ──────────────────── */
+
+.hero-atmosphere .hero-raindrop {
+  position: absolute;
+  top: -16px;
+  left: var(--left);
+  width: 1px;
+  height: 14px;
+  background: linear-gradient(to bottom,
+                transparent,
+                rgba(150, 180, 220, 0.75));
+  animation: hero-rain-fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+@keyframes hero-rain-fall {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(380px); }
+}
+
+/* ── Snow ──────────────────────────────────────────────────────── */
+
+.hero-atmosphere .hero-snowflake-track {
+  position: absolute;
+  top: -8px;
+  left: var(--left);
+  animation: hero-snow-fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+.hero-atmosphere .hero-snowflake-sway {
+  animation: hero-snow-sway var(--sway-dur) ease-in-out var(--sway-delay) infinite alternate;
+  will-change: transform;
+}
+
+.hero-atmosphere .hero-snowflake {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes hero-snow-fall {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(360px); }
+}
+
+@keyframes hero-snow-sway {
+  0%   { transform: translateX(-6px); }
+  100% { transform: translateX(6px); }
+}
+
+/* Pause when tab is hidden — uses the same data attribute that
+   Atmosphere.tsx sets on body. */
+body[data-tab-hidden="true"] .hero-atmosphere * {
+  animation-play-state: paused;
+}

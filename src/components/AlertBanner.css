@@ -1,0 +1,129 @@
+.alert-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.alert-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.alert-banner.severity-extreme::before,
+.alert-banner.severity-severe::before {
+  background: var(--danger);
+}
+
+.alert-banner.severity-moderate::before {
+  background: var(--warn);
+}
+
+.alert-banner.severity-minor::before {
+  background: var(--warn);
+}
+
+.alert-banner.severity-unknown::before {
+  background: var(--border-bright);
+}
+
+.alert-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px 8px;
+  cursor: pointer;
+}
+
+.alert-severity {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.severity-extreme .alert-severity,
+.severity-severe .alert-severity {
+  color: var(--danger);
+}
+
+.severity-moderate .alert-severity {
+  color: var(--warn);
+}
+
+.severity-minor .alert-severity {
+  color: var(--warn);
+}
+
+.severity-unknown .alert-severity {
+  color: var(--text-dim);
+}
+
+.alert-event {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 14px 4px;
+}
+
+.alert-headline {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 14px 12px;
+  line-height: 1.4;
+}
+
+.alert-details {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.alert-description {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.alert-instruction {
+  font-size: 11px;
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1.5;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  white-space: pre-wrap;
+}
+
+.alert-expires {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.alert-toggle {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}

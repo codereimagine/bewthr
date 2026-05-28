@@ -1,0 +1,150 @@
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  contain: layout paint;
+  overflow: hidden;
+}
+
+/* Full-page atmosphere is the AMBIENT layer — dimmed so the focal
+   HeroAtmosphere (inside the hero card) reads as the primary weather
+   visualisation. Lightning intentionally stays at its native opacity:
+   it's a brief storm signature whose photosensitivity safeguards already
+   live in the keyframe (peak 0.55, then 0.30) and gating logic. */
+.atmosphere > :not(.lightning) {
+  opacity: 0.5;
+}
+
+.atmosphere .star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  top: var(--top);
+  left: var(--left);
+  animation: bewthr-twinkle var(--dur) ease-in-out var(--delay) infinite;
+  will-change: opacity;
+}
+
+.atmosphere .star.lg {
+  width: 3px;
+  height: 3px;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes bewthr-twinkle {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 1.00; }
+}
+
+.atmosphere[data-mode="reduced"] .star {
+  animation: none;
+  opacity: 0.55;
+}
+
+.atmosphere .cloud {
+  position: absolute;
+  width: 360px;
+  height: 160px;
+  top: var(--top);
+  left: -30%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse closest-side,
+                rgba(255, 255, 255, 0.10),
+                rgba(255, 255, 255, 0) 70%);
+  filter: blur(28px);
+  animation: bewthr-cloud-drift var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+.atmosphere .cloud.cool {
+  background: radial-gradient(ellipse closest-side,
+                rgba(180, 200, 230, 0.12),
+                rgba(180, 200, 230, 0) 70%);
+}
+
+.atmosphere .cloud.cold {
+  background: radial-gradient(ellipse closest-side,
+                rgba(220, 230, 250, 0.14),
+                rgba(220, 230, 250, 0) 70%);
+}
+
+@keyframes bewthr-cloud-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(130vw); }
+}
+
+.atmosphere .raindrop {
+  position: absolute;
+  top: -32px;
+  left: var(--left);
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(to bottom,
+                transparent,
+                rgba(150, 180, 220, 0.65));
+  animation: bewthr-rain-fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+@keyframes bewthr-rain-fall {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(calc(100vh + 60px)); }
+}
+
+.atmosphere .snow-track {
+  position: absolute;
+  top: -8px;
+  left: var(--left);
+  animation: bewthr-snow-fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+.atmosphere .snow-sway {
+  animation: bewthr-snow-sway var(--sway-dur) ease-in-out var(--sway-delay) infinite alternate;
+  will-change: transform;
+}
+
+.atmosphere .snowflake {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+@keyframes bewthr-snow-fall {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(calc(100vh + 20px)); }
+}
+
+@keyframes bewthr-snow-sway {
+  0%   { transform: translateX(-9px); }
+  100% { transform: translateX(9px); }
+}
+
+.atmosphere .lightning {
+  position: absolute;
+  inset: 0;
+  background: rgba(220, 235, 255, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+  animation: bewthr-lightning 8s linear infinite;
+}
+
+@keyframes bewthr-lightning {
+  0%    { opacity: 0; }
+  1%    { opacity: 0.55; }
+  2.5%  { opacity: 0; }
+  4%    { opacity: 0; }
+  5%    { opacity: 0.30; }
+  6%    { opacity: 0; }
+  100%  { opacity: 0; }
+}
+
+body[data-tab-hidden="true"] .atmosphere * {
+  animation-play-state: paused;
+}

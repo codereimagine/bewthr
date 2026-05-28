@@ -1,0 +1,85 @@
+.daily-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 70px 36px 1fr 80px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.day-row:last-child {
+  border-bottom: none;
+}
+
+.day-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.day-name.today {
+  color: var(--accent);
+}
+
+.day-icon {
+  font-size: 30px;
+  text-align: center;
+  line-height: 1;
+  color: var(--accent);
+  display: flex;
+  justify-content: center;
+}
+
+.day-bar {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.day-bar-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.day-bar-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.day-bar-stop-start { stop-color: var(--info); }
+.day-bar-stop-end { stop-color: var(--accent); }
+
+.day-temps {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  font-size: 13px;
+  font-feature-settings: "tnum";
+}
+
+.day-low {
+  color: var(--text-dim);
+}
+
+.day-high {
+  color: var(--text);
+  font-weight: 600;
+}

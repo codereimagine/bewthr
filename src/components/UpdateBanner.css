@@ -1,0 +1,85 @@
+.update-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.update-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+.update-banner-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  color: var(--accent);
+  padding-right: 24px;
+}
+
+.update-banner-body {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding-top: 4px;
+  padding-bottom: 10px;
+  line-height: 1.4;
+}
+
+.update-banner-refresh {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.update-banner-refresh:hover {
+  background: var(--accent-glow);
+}
+
+.update-banner-refresh:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.update-banner-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.update-banner-dismiss:hover {
+  color: var(--text-dim);
+}
+
+.update-banner-dismiss:focus-visible {
+  outline: 1px solid var(--border-bright);
+  outline-offset: 2px;
+}

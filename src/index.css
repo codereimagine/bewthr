@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+:root {
+  --bg: #0a0a0a;
+  --bg-grid: #111;
+  --surface: #141414;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --border: #2a2a2a;
+  --border-bright: #404040;
+  --text: #f5f5f5;
+  --text-dim: #888;
+  --text-faint: #555;
+  --accent: #ff6600;
+  --accent-glow: rgba(255, 102, 0, 0.35);
+  --accent-soft: rgba(255, 102, 0, 0.08);
+  --warn: #ffaa00;
+  --danger: #ff3344;
+  --good: #00cc66;
+  --info: #4488ff;
+  --mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  --display: 'Space Grotesk Variable', 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+}
+
+:root.light {
+  --bg: #fafafa;
+  --bg-grid: #f0f0f0;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --surface-3: #ebebeb;
+  --border: #e5e5e5;
+  --border-bright: #d0d0d0;
+  --text: #0a0a0a;
+  --text-dim: #555;
+  --text-faint: #999;
+  --accent-soft: rgba(255, 102, 0, 0.05);
+}
+
+:root.night {
+  --bg: #050508;
+  --bg-grid: #0a0a10;
+  --surface: #0c0c12;
+  --surface-2: #14141a;
+  --surface-3: #1c1c24;
+  --border: #22222a;
+  --border-bright: #2e2e3a;
+  --text: #ececec;
+  --text-dim: #777;
+  --text-faint: #444;
+}
+
+@media (prefers-color-scheme: light) {
+  :root.auto {
+    --bg: #fafafa;
+    --bg-grid: #f0f0f0;
+    --surface: #ffffff;
+    --surface-2: #f5f5f5;
+    --surface-3: #ebebeb;
+    --border: #e5e5e5;
+    --border-bright: #d0d0d0;
+    --text: #0a0a0a;
+    --text-dim: #555;
+    --text-faint: #999;
+    --accent-soft: rgba(255, 102, 0, 0.05);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--display);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Background scroll lock is now handled by Modal.tsx via inline body styles
+   (position: fixed + top: -scrollY). The naive overflow:hidden pattern broke
+   inner modal scroll on iOS Safari mobile — see lockBody/unlockBody in
+   Modal.tsx for full rationale. */
+
+/* Mobile-first: hide scrollbars entirely. Scroll still works — wheel,
+   touchpad, touch, arrow keys, page-down — but no visible track or
+   thumb on either touch or desktop. Matches the chrome-less feel of
+   the app on iOS / Android. */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 14px 14px 40px;
+  position: relative;
+}
