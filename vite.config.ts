@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import svgr from 'vite-plugin-svgr'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
@@ -25,6 +26,16 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // Weather icons (Meteocons) are rendered as inline live-DOM SVG via the
+    // `?react` import suffix, NOT as <img src>. WebKit (all iOS browsers) leaves
+    // a static "ghost" of the first frame when SMIL animation runs inside an
+    // <img>; inline DOM animates cleanly on every browser. svgo is disabled so
+    // the SMIL <animateTransform> elements and per-file gradient IDs survive
+    // untouched; dimensions:false lets width/height="1em" props drive sizing.
+    svgr({
+      include: '**/*.svg?react',
+      svgrOptions: { svgo: false, dimensions: false },
+    }),
     VitePWA({
       // 'prompt' = the new SW installs but waits for the user to confirm
       // before activating. Pairs with the in-app UpdateBanner + the

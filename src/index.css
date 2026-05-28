@@ -68,6 +68,17 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Weather icons (Meteocons) render as inline live-DOM <svg> (see weather.tsx /
+   vite-plugin-svgr). Block display + auto margins reproduce the previous
+   <img display:block> contract — no inline-baseline descender gap, centered in
+   the hour/day cards. Size comes from the parent font-size via width/height="1em". */
+.hero-icon svg,
+.hour-icon svg,
+.day-icon svg {
+  display: block;
+  margin: 0 auto;
+}
+
 html, body {
   background: var(--bg);
   color: var(--text);
