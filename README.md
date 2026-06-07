@@ -1,8 +1,10 @@
 # bewthr
 
-Local weather PWA.
+Local weather PWA. The **continuum** axis of codereimagine.
 
 Live: [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)
+
+By **Bert Peters**.
 
 ## Screenshots
 
