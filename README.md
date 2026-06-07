@@ -102,6 +102,14 @@ src/
 bewthr-docs/       # design previews (visual lock before any code)
 ```
 
+## Related
+
+bewthr is one of three axes of codereimagine:
+
+- **bewthr** — continuum (weather)
+- **[uptyme](https://github.com/codereimagine/uptyme)** — time
+- **[starnav](https://github.com/codereimagine/starnav)** — space
+
 ## License
 
 Apache License 2.0 — see [LICENSE](./LICENSE).
