@@ -99,7 +99,7 @@ src/
   hooks/           # useWeather, useSky, useGeolocation, useAnimationMode
   lib/             # openMeteo, nws, geocode, astronomy, skyFormat
   store/           # zustand stores (settings, places)
-bewthr-docs/       # design previews (visual lock before any code)
+deployment-process/ # launch/deployment process — audit chain + design previews (visual lock before any code)
 ```
 
 ## Related
