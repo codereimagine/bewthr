@@ -1,4 +1,5 @@
 import type { TempUnit, WindUnit } from '../store/settings'
+import { roundCoord } from './geoPrivacy'
 
 export interface CurrentWeather {
   temperature_2m: number
@@ -38,8 +39,9 @@ export async function fetchWeather(
   windUnit: WindUnit
 ): Promise<WeatherResponse> {
   const temperatureUnit = tempUnit === 'F' ? 'fahrenheit' : 'celsius'
+  // PRIVACY-HARDEN-2DP: coordinates rounded to ~1.1 km before egress.
   const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${roundCoord(lat)}&longitude=${roundCoord(lon)}` +
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,surface_pressure` +
     `&hourly=temperature_2m,weather_code,is_day` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min` +

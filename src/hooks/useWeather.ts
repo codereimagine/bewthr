@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useSettings } from '../store/settings'
 import { fetchWeather, type WeatherResponse } from '../lib/openMeteo'
+import { fetchWeatherMetno } from '../lib/metno'
 import { fetchAlerts, type NWSAlert } from '../lib/nws'
+import { roundCoord } from '../lib/geoPrivacy'
+import { useFeed, type DataFeed } from '../lib/feed'
 import { useActiveCoords } from './useActiveCoords'
-
-interface FetchState {
-  weather: WeatherResponse | null
-  alerts: NWSAlert[]
-  error: string | null
-  loading: boolean
-}
 
 export function useWeather() {
   const { lat, lon, placeName, placeRegion, loading: coordsLoading } = useActiveCoords()
@@ -17,55 +13,52 @@ export function useWeather() {
   const windUnit = useSettings((s) => s.windUnit)
   const refreshMinutes = useSettings((s) => s.refreshMinutes)
 
-  const [state, setState] = useState<FetchState>({
-    weather: null,
-    alerts: [],
-    error: null,
-    loading: true,
-  })
-  const [refreshTick, setRefreshTick] = useState(0)
-
   const coordsReady = lat !== null && lon !== null
+  const refreshMs = refreshMinutes > 0 ? refreshMinutes * 60_000 : undefined
+  // Feed ids fold in the rounded place + units so distinct contexts cache apart
+  // (and never carry precise coords into a storage key).
+  const ctx = coordsReady ? `${roundCoord(lat!)},${roundCoord(lon!)}:${tempUnit}:${windUnit}` : 'idle'
 
-  useEffect(() => {
-    if (refreshMinutes <= 0) return
-    const id = setInterval(
-      () => setRefreshTick((t) => t + 1),
-      refreshMinutes * 60_000
-    )
-    return () => clearInterval(id)
-  }, [refreshMinutes])
+  // WEATHER — the keyless chain: open-meteo → MET.no → last-known-cached.
+  const weatherFeed = useMemo<DataFeed<WeatherResponse>>(
+    () => ({
+      id: `wx:${ctx}`,
+      persistKey: `wx:${ctx}`,
+      refreshMs,
+      enabled: coordsReady,
+      fetchLive: async () => {
+        try {
+          return await fetchWeather(lat!, lon!, tempUnit, windUnit)
+        } catch {
+          return await fetchWeatherMetno(lat!, lon!, tempUnit, windUnit)
+        }
+      },
+    }),
+    [ctx, refreshMs, coordsReady, lat, lon, tempUnit, windUnit]
+  )
 
-  useEffect(() => {
-    if (coordsLoading || !coordsReady) return
+  // ALERTS — NWS only, ephemeral (they expire); no persistence, empty fallback.
+  const alertsFeed = useMemo<DataFeed<NWSAlert[]>>(
+    () => ({
+      id: `alerts:${ctx}`,
+      refreshMs,
+      enabled: coordsReady,
+      fetchLive: () => fetchAlerts(lat!, lon!),
+    }),
+    [ctx, refreshMs, coordsReady, lat, lon]
+  )
 
-    let cancelled = false
+  const wx = useFeed(weatherFeed)
+  const al = useFeed(alertsFeed)
 
-    Promise.all([
-      fetchWeather(lat!, lon!, tempUnit, windUnit),
-      fetchAlerts(lat!, lon!).catch(() => [] as NWSAlert[]),
-    ])
-      .then(([weatherData, alertsData]) => {
-        if (cancelled) return
-        setState({ weather: weatherData, alerts: alertsData, error: null, loading: false })
-      })
-      .catch(() => {
-        if (cancelled) return
-        setState((s) => ({ ...s, error: 'Connection failed', loading: false }))
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [coordsLoading, coordsReady, lat, lon, tempUnit, windUnit, refreshTick])
-
-  const loading = coordsLoading || (coordsReady && state.loading)
+  const loading = coordsLoading || (coordsReady && wx.data == null && wx.error == null)
 
   return {
-    weather: state.weather,
-    alerts: state.alerts,
-    error: state.error,
+    weather: wx.data,
+    alerts: al.data ?? [],
+    error: wx.data == null ? wx.error : null,
     loading,
+    stale: wx.stale, // true = showing last-known reading, live pull is down
     coordsReady,
     placeName,
     placeRegion,

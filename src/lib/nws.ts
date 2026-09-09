@@ -1,3 +1,5 @@
+import { roundCoord } from './geoPrivacy'
+
 export type NWSSeverity = 'Extreme' | 'Severe' | 'Moderate' | 'Minor' | 'Unknown'
 
 const VALID_SEVERITIES: readonly NWSSeverity[] = [
@@ -59,7 +61,10 @@ function isInUSCoverage(lat: number, lon: number): boolean {
 export async function fetchAlerts(lat: number, lon: number): Promise<NWSAlert[]> {
   if (!isInUSCoverage(lat, lon)) return []
 
-  const url = `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}&status=actual`
+  // PRIVACY-HARDEN-2DP: coordinates rounded to ~1.1 km before egress (the
+  // US-coverage pre-filter above still uses precise coords — it never leaves
+  // the device). Alert zones are far coarser than 1.1 km, so accuracy is intact.
+  const url = `https://api.weather.gov/alerts/active?point=${roundCoord(lat)},${roundCoord(lon)}&status=actual`
 
   const res = await fetch(url, {
     headers: { 'User-Agent': 'bewthr/1.0 (weather PWA)' },
