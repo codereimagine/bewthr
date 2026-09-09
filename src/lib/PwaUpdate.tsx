@@ -102,6 +102,9 @@ export function PwaUpdateProvider({ children }: { children: ReactNode }) {
   return <PwaUpdateContext.Provider value={value}>{children}</PwaUpdateContext.Provider>
 }
 
+// Colocated with its provider by design (a cohesive context module). Fast
+// refresh can't optimize a file that also exports a hook/type; that's fine here.
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePwaUpdate(): PwaUpdateContextValue {
   const ctx = useContext(PwaUpdateContext)
   if (!ctx) {

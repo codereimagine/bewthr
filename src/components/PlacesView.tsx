@@ -32,17 +32,23 @@ export function PlacesView({ open, onClose }: PlacesViewProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
 
-  // Reset transient state every time the view opens, so a previous
-  // search doesn't leak into the next open.
-  useEffect(() => {
+  // Reset transient state when the view closes, so a previous search
+  // doesn't leak into the next open. React's "adjust state during render
+  // when a prop changes" pattern — not an effect, so no cascading render.
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (!open) {
       setQuery('')
       setResults([])
       setSearchError(false)
-      return
     }
-    // Small delay matches the fade-in transition; focusing too early
-    // can fight the animation on slower Android devices.
+  }
+
+  // Focus the input shortly after opening. Small delay matches the fade-in
+  // transition; focusing too early can fight the animation on slower Android.
+  useEffect(() => {
+    if (!open) return
     const t = setTimeout(() => inputRef.current?.focus(), 180)
     return () => clearTimeout(t)
   }, [open])
