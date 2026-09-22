@@ -1,6 +1,7 @@
-import { useId } from 'react'
+import { useId, type CSSProperties } from 'react'
 import { useSettings } from '../store/settings'
 import { getWeatherIcon } from '../lib/weather'
+import { wxAccent } from '../lib/weatherTheme'
 import type { DailyWeather } from '../lib/openMeteo'
 import './DailyForecast.css'
 
@@ -50,7 +51,11 @@ export function DailyForecast({ daily }: DailyForecastProps) {
           const widthPct = Math.max(((dayMax - dayMin) / range) * 100, 4)
 
           return (
-            <div key={time} className="day-row">
+            <div
+              key={time}
+              className="day-row"
+              style={{ '--accent': wxAccent(daily.weather_code[i]) } as CSSProperties}
+            >
               <div className={`day-name ${i === 0 ? 'today' : ''}`}>
                 {formatDay(time, i)}
               </div>

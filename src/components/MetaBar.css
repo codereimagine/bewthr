@@ -26,3 +26,16 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+/* WEATHER-COLOR (Imagined): the whole status line follows the weather — the
+   clock (bold + visible), the SYS.ONLINE label, and the pulsing dot. */
+:root[data-accent='imagined'] .meta-bar {
+  color: var(--accent);
+}
+:root[data-accent='imagined'] .meta-time {
+  font-weight: 600;
+}
+:root[data-accent='imagined'] .status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}

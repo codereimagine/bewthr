@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react'
 import { useSettings } from '../store/settings'
 import { getWeatherIcon } from '../lib/weather'
+import { wxAccent } from '../lib/weatherTheme'
 import type { HourlyWeather } from '../lib/openMeteo'
 import './HourlyStrip.css'
 
@@ -36,7 +38,11 @@ export function HourlyStrip({ hourly }: HourlyStripProps) {
         {hours.map((_, i) => {
           const idx = startIdx + i
           return (
-            <div key={idx} className={`hour-card ${i === 0 ? 'now' : ''}`}>
+            <div
+              key={idx}
+              className={`hour-card ${i === 0 ? 'now' : ''}`}
+              style={{ '--accent': wxAccent(hourly.weather_code[idx], hourly.is_day[idx]) } as CSSProperties}
+            >
               <div className="hour-time">
                 {i === 0 ? 'Now' : formatTime(hourly.time[idx], timeFormat)}
               </div>

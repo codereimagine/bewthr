@@ -12,7 +12,7 @@
 // forbidden to override in fetch), which MET.no accepts for browser origins.
 
 import type { TempUnit, WindUnit } from '../store/settings'
-import { roundCoord } from './geoPrivacy'
+import { roundCoord, type LocationPrecision } from './geoPrivacy'
 import type { CurrentWeather, DailyWeather, HourlyWeather, WeatherResponse } from './openMeteo'
 
 const ENDPOINT = 'https://api.met.no/weatherapi/locationforecast/2.0/compact'
@@ -99,9 +99,10 @@ export async function fetchWeatherMetno(
   lat: number,
   lon: number,
   tempUnit: TempUnit,
-  windUnit: WindUnit
+  windUnit: WindUnit,
+  precision: LocationPrecision = 'surrounding'
 ): Promise<WeatherResponse> {
-  const url = `${ENDPOINT}?lat=${roundCoord(lat)}&lon=${roundCoord(lon)}`
+  const url = `${ENDPOINT}?lat=${roundCoord(lat, precision)}&lon=${roundCoord(lon, precision)}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`MET.no fetch failed (${res.status})`)
 

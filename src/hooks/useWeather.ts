@@ -11,13 +11,17 @@ export function useWeather() {
   const { lat, lon, placeName, placeRegion, loading: coordsLoading } = useActiveCoords()
   const tempUnit = useSettings((s) => s.tempUnit)
   const windUnit = useSettings((s) => s.windUnit)
+  const locationPrecision = useSettings((s) => s.locationPrecision)
   const refreshMinutes = useSettings((s) => s.refreshMinutes)
 
   const coordsReady = lat !== null && lon !== null
   const refreshMs = refreshMinutes > 0 ? refreshMinutes * 60_000 : undefined
-  // Feed ids fold in the rounded place + units so distinct contexts cache apart
-  // (and never carry precise coords into a storage key).
-  const ctx = coordsReady ? `${roundCoord(lat!)},${roundCoord(lon!)}:${tempUnit}:${windUnit}` : 'idle'
+  // Feed ids fold in the rounded place + units + precision so distinct contexts
+  // cache apart (and never carry precise coords into a storage key). Changing
+  // precision re-keys the cache so a coarser reading never reuses a finer one.
+  const ctx = coordsReady
+    ? `${roundCoord(lat!, locationPrecision)},${roundCoord(lon!, locationPrecision)}:${tempUnit}:${windUnit}:${locationPrecision}`
+    : 'idle'
 
   // WEATHER — the keyless chain: open-meteo → MET.no → last-known-cached.
   const weatherFeed = useMemo<DataFeed<WeatherResponse>>(
@@ -28,13 +32,13 @@ export function useWeather() {
       enabled: coordsReady,
       fetchLive: async () => {
         try {
-          return await fetchWeather(lat!, lon!, tempUnit, windUnit)
+          return await fetchWeather(lat!, lon!, tempUnit, windUnit, locationPrecision)
         } catch {
-          return await fetchWeatherMetno(lat!, lon!, tempUnit, windUnit)
+          return await fetchWeatherMetno(lat!, lon!, tempUnit, windUnit, locationPrecision)
         }
       },
     }),
-    [ctx, refreshMs, coordsReady, lat, lon, tempUnit, windUnit]
+    [ctx, refreshMs, coordsReady, lat, lon, tempUnit, windUnit, locationPrecision]
   )
 
   // ALERTS — NWS only, ephemeral (they expire); no persistence, empty fallback.
@@ -43,9 +47,9 @@ export function useWeather() {
       id: `alerts:${ctx}`,
       refreshMs,
       enabled: coordsReady,
-      fetchLive: () => fetchAlerts(lat!, lon!),
+      fetchLive: () => fetchAlerts(lat!, lon!, locationPrecision),
     }),
-    [ctx, refreshMs, coordsReady, lat, lon]
+    [ctx, refreshMs, coordsReady, lat, lon, locationPrecision]
   )
 
   const wx = useFeed(weatherFeed)

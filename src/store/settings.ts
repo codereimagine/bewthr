@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { LocationPrecision } from '../lib/geoPrivacy'
 
 export type Theme = 'dark' | 'light' | 'night' | 'auto'
 export type TempUnit = 'F' | 'C'
@@ -9,6 +10,7 @@ export type TimeFormat = '12' | '24'
 export type UnitSystem = 'imperial' | 'metric'
 export type AnimationMode = 'off' | 'reduced' | 'on'
 export type LightningMode = 'off' | 'on'
+export type AccentMode = 'imagined' | 'classic'
 
 interface SettingsState {
   theme: Theme
@@ -23,6 +25,8 @@ interface SettingsState {
   showSky: boolean
   animations: AnimationMode
   lightning: LightningMode
+  accentMode: AccentMode
+  locationPrecision: LocationPrecision
   refreshMinutes: number
   setTheme: (theme: Theme) => void
   setUnits: (system: UnitSystem) => void
@@ -43,6 +47,8 @@ const DEFAULTS = {
   showSky: true,
   animations: 'on' as AnimationMode,
   lightning: 'off' as LightningMode,
+  accentMode: 'classic' as AccentMode,
+  locationPrecision: 'surrounding' as LocationPrecision,
   refreshMinutes: 15,
 }
 
@@ -57,6 +63,8 @@ const VALID_TIME_FORMATS: readonly TimeFormat[] = ['12', '24']
 const VALID_UNIT_SYSTEMS: readonly UnitSystem[] = ['imperial', 'metric']
 const VALID_ANIMATIONS: readonly AnimationMode[] = ['off', 'reduced', 'on']
 const VALID_LIGHTNING: readonly LightningMode[] = ['off', 'on']
+const VALID_ACCENT_MODES: readonly AccentMode[] = ['imagined', 'classic']
+const VALID_LOCATION_PRECISION: readonly LocationPrecision[] = ['exact', 'surrounding', 'general']
 const REFRESH_MIN = 0
 const REFRESH_MAX = 1440
 
@@ -92,6 +100,8 @@ function sanitizePersisted(raw: unknown): Partial<SettingsState> {
     showSky: pickBool(r.showSky, DEFAULTS.showSky),
     animations: pickEnum(r.animations, VALID_ANIMATIONS, DEFAULTS.animations),
     lightning: pickEnum(r.lightning, VALID_LIGHTNING, DEFAULTS.lightning),
+    accentMode: pickEnum(r.accentMode, VALID_ACCENT_MODES, DEFAULTS.accentMode),
+    locationPrecision: pickEnum(r.locationPrecision, VALID_LOCATION_PRECISION, DEFAULTS.locationPrecision),
     refreshMinutes: pickRefreshMinutes(r.refreshMinutes, DEFAULTS.refreshMinutes),
   }
 }

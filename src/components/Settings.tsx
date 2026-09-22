@@ -1,12 +1,14 @@
 import {
   useSettings,
   type Theme,
+  type AccentMode,
   type UnitSystem,
   type TempUnit,
   type WindUnit,
   type PressureUnit,
   type TimeFormat,
 } from '../store/settings'
+import type { LocationPrecision } from '../lib/geoPrivacy'
 import { usePwaUpdate } from '../lib/PwaUpdate'
 import { SettingsAnimations } from './SettingsAnimations'
 import './SettingsAnimations.css'
@@ -16,6 +18,17 @@ const THEMES: { value: Theme; label: string; glyph: string }[] = [
   { value: 'light', label: 'Light', glyph: '☀️' },
   { value: 'night', label: 'Night', glyph: '\u{1F311}' },
   { value: 'auto', label: 'Auto', glyph: '\u{1F317}' },
+]
+
+const ACCENT_MODES: { value: AccentMode; label: string; glyph: string }[] = [
+  { value: 'imagined', label: 'Imagined', glyph: '✨' },
+  { value: 'classic', label: 'Classic', glyph: '🟠' },
+]
+
+const LOCATION_PRECISION: { value: LocationPrecision; label: string }[] = [
+  { value: 'exact', label: 'Exact' },
+  { value: 'surrounding', label: 'Surrounding' },
+  { value: 'general', label: 'General' },
 ]
 
 const SYSTEMS: { value: UnitSystem; label: string }[] = [
@@ -168,8 +181,32 @@ export function Settings() {
           value={settings.theme}
           onChange={settings.setTheme}
         />
+        <ChipRow<AccentMode>
+          label="Accent"
+          ariaLabel="Accent color mode"
+          options={ACCENT_MODES}
+          value={settings.accentMode}
+          onChange={(v) => settings.updateSetting('accentMode', v)}
+        />
         <div className="settings-note">
           Auto follows OS preference. Night is a deeper palette for actual night use.
+          Imagined tints the accent to the sky; Classic keeps the original orange.
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-title">Location precision</div>
+        <ChipRow<LocationPrecision>
+          label="Coordinates sent to weather services"
+          ariaLabel="Location precision"
+          options={LOCATION_PRECISION}
+          value={settings.locationPrecision}
+          onChange={(v) => settings.updateSetting('locationPrecision', v)}
+        />
+        <div className="settings-note">
+          How precise the coordinates that leave your device are. Exact = your point ·
+          Surrounding ≈ 1 km · General ≈ 11 km. Your precise location always stays
+          on-device for the local sky &amp; astronomy math.
         </div>
       </div>
 

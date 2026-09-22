@@ -26,7 +26,7 @@ export function MetaBar() {
         <span className="status-dot" />
         SYS.ONLINE
       </div>
-      <div>{time || '--:--'}</div>
+      <div className="meta-time">{time || '--:--'}</div>
     </div>
   )
 }

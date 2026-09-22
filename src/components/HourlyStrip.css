@@ -71,6 +71,19 @@
   font-weight: 600;
 }
 
+/* WEATHER-COLOR (Imagined only): each hour card + its label take that hour's
+   own accent (set inline in HourlyStrip.tsx). NOW keeps its stronger highlight. */
+:root[data-accent='imagined'] .hour-card:not(.now) {
+  border-color: var(--accent);
+}
+:root[data-accent='imagined'] .hour-time {
+  color: var(--accent);
+}
+/* the degree also takes the hour's weather accent, so it stands out */
+:root[data-accent='imagined'] .hour-temp {
+  color: var(--accent);
+}
+
 .hour-icon {
   font-size: 32px;
   margin: 4px 0;

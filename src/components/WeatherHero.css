@@ -10,6 +10,20 @@
   /* Establish a stacking context so HeroAtmosphere (z-index: 0) sits
      behind hero-content (z-index: 1) without bleeding outside the card. */
   isolation: isolate;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* WEATHER-COLOR: in Weather mode the whole card carries the sky's hue — a
+   tinted border, an outer bloom, and a soft inner glow. Classic mode omits
+   this entirely (falls back to the plain original card). */
+:root[data-accent='imagined'] .hero {
+  /* the whole card outline takes the weather colour + thin side bars. */
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent), inset -3px 0 0 var(--accent);
+  /* the whole box carries the weather hue: a tinted base + a stronger top glow. */
+  background:
+    radial-gradient(130% 100% at 50% -5%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 72%),
+    color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
 .hero-content {
@@ -21,6 +35,17 @@
   content: '';
   position: absolute;
   top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 10%, var(--accent) 50%, transparent 90%);
+}
+
+/* matching accent line on the BOTTOM border — Imagined mode only */
+:root[data-accent='imagined'] .hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
@@ -95,6 +120,12 @@
   color: var(--text);
 }
 
+/* WEATHER-COLOR (Imagined): the big degree takes the weather accent too, so the
+   whole 63°F matches the current condition. Classic keeps it plain. */
+:root[data-accent='imagined'] .hero-temp {
+  color: var(--accent);
+}
+
 .hero-temp .unit {
   font-size: 28px;
   color: var(--accent);
@@ -162,6 +193,21 @@
   font-weight: 600;
   font-feature-settings: "tnum";
   color: var(--text);
+}
+
+/* WEATHER-COLOR (Imagined): each metric's border + top line + value take the
+   weather accent; the label a dimmer shade of it (not grey). */
+:root[data-accent='imagined'] .metric {
+  border-color: var(--accent);
+}
+:root[data-accent='imagined'] .metric::before {
+  background: var(--accent);
+}
+:root[data-accent='imagined'] .metric-value {
+  color: var(--accent);
+}
+:root[data-accent='imagined'] .metric-label {
+  color: color-mix(in srgb, var(--accent) 52%, transparent);
 }
 
 .metric-unit {

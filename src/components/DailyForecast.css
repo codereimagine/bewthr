@@ -3,7 +3,24 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
 }
+
+/* accent lines on the TOP and BOTTOM border of the forecast card
+   (changes with the weather via --accent, orange in Classic) */
+:root[data-accent='imagined'] .daily-list::before,
+:root[data-accent='imagined'] .daily-list::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+  z-index: 2;
+}
+.daily-list::before { top: 0; }
+.daily-list::after { bottom: 0; }
 
 .day-row {
   display: grid;
@@ -12,6 +29,28 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   gap: 10px;
+}
+
+/* WEATHER-COLOR (Weather mode only): each row carries its day's accent (set
+   inline in DailyForecast.tsx) as indicator bars on BOTH sides + a tinted
+   high. Classic mode drops these for the original plain rows. */
+:root[data-accent='imagined'] .day-row {
+  /* accent line on each side border only — no color on the dividers between */
+  box-shadow: inset 3px 0 0 var(--accent), inset -3px 0 0 var(--accent);
+}
+
+:root[data-accent='imagined'] .day-row .day-high {
+  color: var(--accent);
+}
+
+/* each day's NAME also takes that day's weather accent */
+:root[data-accent='imagined'] .day-name {
+  color: var(--accent);
+}
+
+/* the forecast card outline takes the (current) weather colour too */
+:root[data-accent='imagined'] .daily-list {
+  border-color: var(--accent);
 }
 
 .day-row:last-child {

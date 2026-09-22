@@ -21,8 +21,7 @@ import ClearDay            from '@meteocons/svg/fill/clear-day.svg?react'
 import ClearNight          from '@meteocons/svg/fill/clear-night.svg?react'
 import PartlyCloudyDay     from '@meteocons/svg/fill/partly-cloudy-day.svg?react'
 import PartlyCloudyNight   from '@meteocons/svg/fill/partly-cloudy-night.svg?react'
-import OvercastDay         from '@meteocons/svg/fill/overcast-day.svg?react'
-import OvercastNight       from '@meteocons/svg/fill/overcast-night.svg?react'
+import Overcast            from '@meteocons/svg/fill/overcast.svg?react'
 import FogDay              from '@meteocons/svg/fill/fog-day.svg?react'
 import FogNight            from '@meteocons/svg/fill/fog-night.svg?react'
 import Drizzle             from '@meteocons/svg/fill/drizzle.svg?react'
@@ -40,7 +39,6 @@ const DAY_NIGHT_BY_CODE: Record<number, [IconComponent, IconComponent]> = {
   0:  [ClearDay,         ClearNight],
   1:  [ClearDay,         ClearNight],
   2:  [PartlyCloudyDay,  PartlyCloudyNight],
-  3:  [OvercastDay,      OvercastNight],
   45: [FogDay,           FogNight],
   48: [FogDay,           FogNight],
   95: [ThunderstormsDay, ThunderstormsNight],
@@ -50,6 +48,7 @@ const DAY_NIGHT_BY_CODE: Record<number, [IconComponent, IconComponent]> = {
 
 // Codes whose icon is the same regardless of day/night (precipitation forms).
 const ICONS_BY_CODE: Record<number, IconComponent> = {
+  3:  Overcast, // overcast is overcast day or night — no sun/moon
   51: Drizzle,
   53: Drizzle,
   55: Drizzle,

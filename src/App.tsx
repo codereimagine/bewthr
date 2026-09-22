@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSettings, applyTheme } from './store/settings'
 import { usePlaces } from './store/places'
 import { useWeather } from './hooks/useWeather'
+import { wxBucket } from './lib/weatherTheme'
 import { Header } from './components/Header'
 import { MetaBar } from './components/MetaBar'
 import { WeatherHero } from './components/WeatherHero'
@@ -34,6 +35,21 @@ function App() {
   useEffect(() => {
     loadPlaces()
   }, [loadPlaces])
+
+  // WEATHER-COLOR: drive the global accent from the current condition.
+  // data-accent gates all the new visuals (glow, forecast bars); Classic mode
+  // removes data-cond so everything falls back to the original orange.
+  const current = weather?.current
+  const accentMode = useSettings((s) => s.accentMode)
+  useEffect(() => {
+    const r = document.documentElement
+    r.setAttribute('data-accent', accentMode)
+    if (accentMode === 'imagined' && current) {
+      r.setAttribute('data-cond', wxBucket(current.weather_code, current.is_day))
+    } else {
+      r.removeAttribute('data-cond')
+    }
+  }, [current, accentMode])
 
   return (
     <PwaUpdateProvider>

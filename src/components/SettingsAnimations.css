@@ -77,7 +77,9 @@
 }
 
 .settings-chip.active {
-  background: rgba(255, 102, 0, 0.18);
+  /* follow the active accent (weather hue in Imagined, orange in Classic) —
+     was a hardcoded orange that leaked into Imagined mode. */
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;

@@ -6,10 +6,29 @@
   position: relative;
 }
 
+/* Imagined-only: accent lines on the LEFT + RIGHT borders (::before/::after
+   cover top/bottom) — full accent frame. Classic has none of this. */
+:root[data-accent='imagined'] .sky-card {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent), inset -3px 0 0 var(--accent);
+}
+
 .sky-card::before {
   content: '';
   position: absolute;
   top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+/* matching accent line on the BOTTOM border — Imagined mode only */
+:root[data-accent='imagined'] .sky-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
@@ -72,6 +91,12 @@
 .sky-summary.sky-countdown strong {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* WEATHER-COLOR (Imagined): the collapsed summary's key values take the weather
+   accent too, so the whole Sky Tonight card matches at a glance (day + night). */
+:root[data-accent='imagined'] .sky-summary strong {
+  color: var(--accent);
 }
 
 /* Sky hero block — 96px celestial visual + caption stack at the top
@@ -183,6 +208,24 @@
   font-size: 13px;
   color: var(--text);
   font-feature-settings: "tnum";
+}
+
+/* WEATHER-COLOR (Imagined): every data element in Sky Tonight takes the weather
+   accent — values, planet/constellation names, and the moon caption. Only the
+   small grey labels + HIGH/MID/LOW status stay muted, for contrast. */
+:root[data-accent='imagined'] .sky-kv-value,
+:root[data-accent='imagined'] .sky-row-name,
+:root[data-accent='imagined'] .sky-hero-meta {
+  color: var(--accent);
+}
+
+/* even the muted labels + status take a DIMMER shade of the weather hue, so the
+   whole card is one colour with brightness (not grey) carrying the hierarchy. */
+:root[data-accent='imagined'] .sky-kv-label,
+:root[data-accent='imagined'] .sky-row-meta,
+:root[data-accent='imagined'] .sky-row-meta.dim,
+:root[data-accent='imagined'] .sky-hero-meta-sub {
+  color: color-mix(in srgb, var(--accent) 52%, transparent);
 }
 
 .sky-row {
