@@ -3,7 +3,7 @@ import { useSettings } from '../store/settings'
 import { fetchWeather, type WeatherResponse } from '../lib/openMeteo'
 import { fetchWeatherMetno } from '../lib/metno'
 import { fetchAlerts, type NWSAlert } from '../lib/nws'
-import { roundCoord } from '../lib/geoPrivacy'
+import { roundCoord, alertPrecision } from '../lib/geoPrivacy'
 import { useFeed, type DataFeed } from '../lib/feed'
 import { useActiveCoords } from './useActiveCoords'
 
@@ -42,14 +42,17 @@ export function useWeather() {
   )
 
   // ALERTS — NWS only, ephemeral (they expire); no persistence, empty fallback.
+  // Safety warnings never use coarser than `surrounding` (alertPrecision), so a
+  // `general` setting can't drop a local advisory (coastal flood, etc.).
+  const alertPrec = alertPrecision(locationPrecision)
   const alertsFeed = useMemo<DataFeed<NWSAlert[]>>(
     () => ({
-      id: `alerts:${ctx}`,
+      id: `alerts:${roundCoord(lat!, alertPrec)},${roundCoord(lon!, alertPrec)}:${alertPrec}`,
       refreshMs,
       enabled: coordsReady,
-      fetchLive: () => fetchAlerts(lat!, lon!, locationPrecision),
+      fetchLive: () => fetchAlerts(lat!, lon!, alertPrec),
     }),
-    [ctx, refreshMs, coordsReady, lat, lon, locationPrecision]
+    [refreshMs, coordsReady, lat, lon, alertPrec]
   )
 
   const wx = useFeed(weatherFeed)
