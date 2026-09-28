@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useSettings } from '../store/settings'
 import { getWeatherIcon } from '../lib/weather'
-import { wxAccent } from '../lib/weatherTheme'
+import { wxAccentLight } from '../lib/weatherTheme'
 import type { HourlyWeather } from '../lib/openMeteo'
 import './HourlyStrip.css'
 
@@ -45,7 +45,7 @@ export function HourlyStrip({ hourly }: HourlyStripProps) {
               // Imagined only: each hour takes its own weather colour. Classic keeps
               // the base orange accent (no inline override) — PRIVACY of the look.
               style={accentMode === 'imagined'
-                ? ({ '--accent': wxAccent(hourly.weather_code[idx], hourly.is_day[idx]) } as CSSProperties)
+                ? ({ '--accent': wxAccentLight(hourly.weather_code[idx], hourly.is_day[idx]) } as CSSProperties)
                 : undefined}
             >
               <div className="hour-time">

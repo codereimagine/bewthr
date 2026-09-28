@@ -25,7 +25,7 @@ import './App.css'
 function App() {
   const theme = useSettings((s) => s.theme)
   const loadPlaces = usePlaces((s) => s.loadPlaces)
-  const loadStoredGeo = useGeo((s) => s.loadStored)
+  const initGeo = useGeo((s) => s.init)
   const [placesViewOpen, setPlacesViewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -39,11 +39,12 @@ function App() {
     loadPlaces()
   }, [loadPlaces])
 
-  // Rehydrate the secured last-known location. Never prompts — the user opts in
-  // via Settings → "Use location". (LOCATION-OPT-IN)
+  // Load last-known location on entry, and auto-refresh it if the user has opted
+  // in before. First-time visitors get no prompt — they opt in via Settings →
+  // "Turn on location" (that button is the consent gate). (LOCATION-OPT-IN)
   useEffect(() => {
-    loadStoredGeo()
-  }, [loadStoredGeo])
+    initGeo()
+  }, [initGeo])
 
   // WEATHER-COLOR: drive the global accent from the current condition.
   // data-accent gates all the new visuals (glow, forecast bars); Classic mode

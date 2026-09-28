@@ -207,7 +207,7 @@
   color: var(--accent);
 }
 :root[data-accent='imagined'] .metric-label {
-  color: color-mix(in srgb, var(--accent) 52%, transparent);
+  color: color-mix(in srgb, var(--accent) 38%, #e6ecf6);
 }
 
 .metric-unit {

@@ -9,33 +9,52 @@ interface SkyHeroSunProps {
   timeFormat: TimeFormat
 }
 
+// 12 rays at 30° steps, alternating length for a livelier corona.
+const RAYS = Array.from({ length: 12 }, (_, i) => {
+  const ang = (i * 30 * Math.PI) / 180
+  const inner = 42
+  const outer = i % 2 === 0 ? 56 : 50
+  return {
+    x1: Math.cos(ang) * inner,
+    y1: Math.sin(ang) * inner,
+    x2: Math.cos(ang) * outer,
+    y2: Math.sin(ang) * outer,
+  }
+})
+
 export function SkyHeroSun({ sun, computedAt, timeFormat }: SkyHeroSunProps) {
   const id = useId()
   const gradId = `sunGrad-${id}`
+  const coronaId = `sunCorona-${id}`
 
   return (
     <div className="sky-hero">
       <div className="sky-hero-visual">
-        <svg viewBox="-60 -60 120 120" width="96" height="96" aria-hidden="true">
+        <svg viewBox="-60 -60 120 120" width="96" height="96" aria-hidden="true" className="sky-sun-svg">
           <defs>
-            <radialGradient id={gradId} cx="35%" cy="35%">
-              <stop offset="0%" stopColor="#ffe8a0" />
-              <stop offset="60%" stopColor="#ffaa44" />
-              <stop offset="100%" stopColor="#ff7722" />
+            <radialGradient id={coronaId} cx="50%" cy="50%">
+              <stop offset="28%" stopColor="rgba(255,190,90,0.38)" />
+              <stop offset="68%" stopColor="rgba(255,150,60,0.12)" />
+              <stop offset="100%" stopColor="rgba(255,150,60,0)" />
+            </radialGradient>
+            <radialGradient id={gradId} cx="38%" cy="34%">
+              <stop offset="0%" stopColor="#fff6d8" />
+              <stop offset="45%" stopColor="#ffd170" />
+              <stop offset="78%" stopColor="#ffa63e" />
+              <stop offset="100%" stopColor="#f5791d" />
             </radialGradient>
           </defs>
-          <circle r="58" fill="rgba(255, 170, 68, 0.18)" />
-          <g stroke="#ffaa44" strokeWidth="2.5" strokeLinecap="round" opacity="0.75">
-            <line x1="0" y1="-56" x2="0" y2="-44" />
-            <line x1="40" y1="-40" x2="32" y2="-32" />
-            <line x1="56" y1="0" x2="44" y2="0" />
-            <line x1="40" y1="40" x2="32" y2="32" />
-            <line x1="0" y1="56" x2="0" y2="44" />
-            <line x1="-40" y1="40" x2="-32" y2="32" />
-            <line x1="-56" y1="0" x2="-44" y2="0" />
-            <line x1="-40" y1="-40" x2="-32" y2="-32" />
+          {/* corona */}
+          <circle r="58" fill={`url(#${coronaId})`} />
+          {/* rays */}
+          <g className="sky-sun-rays">
+            {RAYS.map((r, i) => (
+              <line key={i} className="sky-sun-ray" x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} />
+            ))}
           </g>
-          <circle r="38" fill={`url(#${gradId})`} />
+          {/* disc + limb highlight */}
+          <circle r="34" fill={`url(#${gradId})`} />
+          <circle r="34" fill="none" stroke="rgba(255,244,208,0.55)" strokeWidth="1" />
         </svg>
       </div>
       <div className="sky-hero-caption">

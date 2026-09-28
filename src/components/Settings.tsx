@@ -139,20 +139,25 @@ function ToggleRow({ label, ariaLabel, value, onChange }: ToggleRowProps) {
   )
 }
 
-// LOCATION-OPT-IN: bewthr never auto-asks for location. This button lets anyone
-// who wants to (re)acquire their device location do so on demand. Shared by both
-// Classic and Imagined (Settings renders identically in each).
+// LOCATION: on by default. This button is the security chokepoint — an on/off
+// switch. Off wipes the on-device fix and stops all location use; nothing (not even
+// a rounded coord) leaves the app. Precise coords stay on-device (geoPrivacy rounds
+// egress). Shared by Classic and Imagined.
 function LocationSection() {
+  const enabled = useGeo((s) => s.enabled)
   const lat = useGeo((s) => s.lat)
   const loading = useGeo((s) => s.loading)
   const error = useGeo((s) => s.error)
-  const requestLocation = useGeo((s) => s.requestLocation)
+  const approximate = useGeo((s) => s.approximate)
+  const setEnabled = useGeo((s) => s.setEnabled)
 
   let note: string
-  if (loading) note = 'Turning on location…'
-  else if (error) note = error
-  else if (lat !== null) note = 'Location is on — kept on your device. Tap to refresh.'
-  else note = 'Off until you turn it on here — a secured measure, kept on your device.'
+  if (loading) note = 'Getting your location…'
+  else if (!enabled) note = 'Location is off. Nothing is acquired or sent. Turn on to use local weather.'
+  else if (error) note = 'Couldn’t get precise or network location. Add a place by name instead.'
+  else if (lat !== null && approximate) note = 'On — approximate, from your network (GPS was blocked). Kept on your device. Tap refresh to try GPS.'
+  else if (lat !== null) note = 'On — starts automatically each visit, kept on your device. Tap refresh to update.'
+  else note = 'On — tap the ⌖ locate button in the top bar. If GPS is blocked, it uses your approximate network location.'
 
   return (
     <div className="settings-section">
@@ -160,11 +165,12 @@ function LocationSection() {
       <button
         type="button"
         className="settings-update-check"
-        onClick={() => requestLocation()}
+        onClick={() => setEnabled(!enabled)}
         disabled={loading}
         aria-busy={loading}
+        aria-pressed={enabled}
       >
-        {loading ? 'Turning on…' : lat !== null ? 'Update location' : 'Turn on location'}
+        {enabled ? 'Location: On — tap to turn off' : 'Location: Off — tap to turn on'}
       </button>
       <div className="settings-update-note">{note}</div>
     </div>

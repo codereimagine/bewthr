@@ -44,3 +44,19 @@ export const WX_ACCENT: Record<WxBucket, string> = {
 export function wxAccent(code: number, isDay: number | boolean = 1): string {
   return WX_ACCENT[wxBucket(code, isDay)]
 }
+
+/** Lighter accents for Imagined mode — the darker WX_ACCENT hues wash out as text
+   over the live sky, so per-element text (hourly/daily) uses these for legibility. */
+export const WX_ACCENT_LIGHT: Record<WxBucket, string> = {
+  'clear-day': '#ffb866',
+  'clear-night': '#8fe6f5',
+  partly: '#c4d5f7',
+  cloud: '#aab6ff',
+  fog: '#b6c8ea',
+  rain: '#93d8fb',
+  snow: '#a6e6f6',
+  storm: '#ef86f2',
+}
+export function wxAccentLight(code: number, isDay: number | boolean = 1): string {
+  return WX_ACCENT_LIGHT[wxBucket(code, isDay)]
+}

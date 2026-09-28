@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from 'react'
 import { useSettings } from '../store/settings'
 import { getWeatherIcon } from '../lib/weather'
-import { wxAccent } from '../lib/weatherTheme'
+import { wxAccentLight } from '../lib/weatherTheme'
 import type { DailyWeather } from '../lib/openMeteo'
 import './DailyForecast.css'
 
@@ -58,7 +58,7 @@ export function DailyForecast({ daily }: DailyForecastProps) {
               // Imagined only: each day takes its own weather colour. Classic keeps
               // the base orange accent (no inline override).
               style={accentMode === 'imagined'
-                ? ({ '--accent': wxAccent(daily.weather_code[i]) } as CSSProperties)
+                ? ({ '--accent': wxAccentLight(daily.weather_code[i]) } as CSSProperties)
                 : undefined}
             >
               <div className={`day-name ${i === 0 ? 'today' : ''}`}>
