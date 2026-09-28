@@ -16,6 +16,7 @@ import { Modal } from './components/Modal'
 import { PlacesView } from './components/PlacesView'
 import { Settings } from './components/Settings'
 import { Atmosphere } from './components/atmosphere/Atmosphere'
+import { LiveSky } from './components/LiveSky'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
 import { PwaUpdateProvider } from './lib/PwaUpdate'
@@ -61,6 +62,7 @@ function App() {
 
   return (
     <PwaUpdateProvider>
+      {accentMode === 'imagined' && <LiveSky current={weather?.current} />}
       <Atmosphere current={weather?.current} />
       <Header
         onOpenPlaces={() => setPlacesViewOpen(true)}

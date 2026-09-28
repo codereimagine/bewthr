@@ -1,0 +1,44 @@
+/* LIVE SKY — Imagined "living window". All rules are gated to
+   :root[data-accent='imagined'] so Classic is byte-for-byte untouched. */
+
+.live-sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;            /* behind all app content */
+  pointer-events: none;
+  display: block;
+}
+
+/* Reveal the sky behind the instrument chrome (Imagined only). */
+:root[data-accent='imagined'],
+:root[data-accent='imagined'] body,
+:root[data-accent='imagined'] #root {
+  background: transparent !important;
+}
+
+/* The hero becomes a translucent window onto the sky (Imagined only). */
+:root[data-accent='imagined'] .hero {
+  background: rgba(10, 14, 28, 0.34) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+/* Full "one atmosphere": every cell becomes a translucent window onto the sky,
+   so the whole page reads as one living scene (Imagined only). */
+:root[data-accent='imagined'] .metric,
+:root[data-accent='imagined'] .hour-card,
+:root[data-accent='imagined'] .day-row {
+  background: rgba(10, 14, 28, 0.32) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+:root[data-accent='imagined'] .daily-list {
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* the canvas already renders a single static, accurate frame */
+  .live-sky { }
+}
