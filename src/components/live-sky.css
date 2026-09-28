@@ -39,14 +39,15 @@
   -webkit-backdrop-filter: blur(7px);
 }
 
-/* Full "one atmosphere": every cell becomes a translucent window onto the sky,
-   so the whole page reads as one living scene (Imagined only). */
+/* Full "one atmosphere": every cell is a translucent window onto the sky.
+   NOTE: no backdrop-filter on the cards — blur on ~15 elements over an animating
+   canvas tanked the frame rate (21fps). Translucent fill alone keeps the sky
+   reading through while holding the 1–120fps smoothness signature. Only the hero
+   (a single element) carries a blur. */
 :root[data-accent='imagined'] .metric,
 :root[data-accent='imagined'] .hour-card,
 :root[data-accent='imagined'] .day-row {
-  background: rgba(10, 14, 28, 0.32) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(10, 14, 28, 0.42) !important;
 }
 :root[data-accent='imagined'] .daily-list {
   background: transparent !important;
