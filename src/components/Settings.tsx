@@ -9,6 +9,7 @@ import {
   type TimeFormat,
 } from '../store/settings'
 import type { LocationPrecision } from '../lib/geoPrivacy'
+import { useGeo } from '../store/geo'
 import { usePwaUpdate } from '../lib/PwaUpdate'
 import { SettingsAnimations } from './SettingsAnimations'
 import './SettingsAnimations.css'
@@ -138,6 +139,38 @@ function ToggleRow({ label, ariaLabel, value, onChange }: ToggleRowProps) {
   )
 }
 
+// LOCATION-OPT-IN: bewthr never auto-asks for location. This button lets anyone
+// who wants to (re)acquire their device location do so on demand. Shared by both
+// Classic and Imagined (Settings renders identically in each).
+function LocationSection() {
+  const lat = useGeo((s) => s.lat)
+  const loading = useGeo((s) => s.loading)
+  const error = useGeo((s) => s.error)
+  const requestLocation = useGeo((s) => s.requestLocation)
+
+  let note: string
+  if (loading) note = 'Requesting your location…'
+  else if (error) note = error
+  else if (lat !== null) note = 'Using your current location. Tap to refresh.'
+  else note = "We won't ask for your location unless you tap here."
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-title">Location</div>
+      <button
+        type="button"
+        className="settings-update-check"
+        onClick={() => requestLocation()}
+        disabled={loading}
+        aria-busy={loading}
+      >
+        {loading ? 'Locating…' : lat !== null ? 'Update location' : 'Use location'}
+      </button>
+      <div className="settings-update-note">{note}</div>
+    </div>
+  )
+}
+
 function UpdatesSection() {
   const { checkForUpdates, checkResult } = usePwaUpdate()
   const checking = checkResult === 'checking'
@@ -209,6 +242,8 @@ export function Settings() {
           on-device for the local sky &amp; astronomy math.
         </div>
       </div>
+
+      <LocationSection />
 
       <div className="settings-section">
         <div className="settings-section-title">Units</div>
