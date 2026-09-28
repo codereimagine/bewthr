@@ -149,10 +149,10 @@ function LocationSection() {
   const requestLocation = useGeo((s) => s.requestLocation)
 
   let note: string
-  if (loading) note = 'Requesting your location…'
+  if (loading) note = 'Turning on location…'
   else if (error) note = error
-  else if (lat !== null) note = 'Using your current location. Tap to refresh.'
-  else note = "We won't ask for your location unless you tap here."
+  else if (lat !== null) note = 'Location is on — kept on your device. Tap to refresh.'
+  else note = 'Off until you turn it on here — a secured measure, kept on your device.'
 
   return (
     <div className="settings-section">
@@ -164,7 +164,7 @@ function LocationSection() {
         disabled={loading}
         aria-busy={loading}
       >
-        {loading ? 'Locating…' : lat !== null ? 'Update location' : 'Use location'}
+        {loading ? 'Turning on…' : lat !== null ? 'Update location' : 'Turn on location'}
       </button>
       <div className="settings-update-note">{note}</div>
     </div>
