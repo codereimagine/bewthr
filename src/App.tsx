@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSettings, applyTheme } from './store/settings'
 import { usePlaces } from './store/places'
+import { useGeo } from './store/geo'
 import { useWeather } from './hooks/useWeather'
 import { wxBucket } from './lib/weatherTheme'
 import { Header } from './components/Header'
@@ -15,6 +16,7 @@ import { Modal } from './components/Modal'
 import { PlacesView } from './components/PlacesView'
 import { Settings } from './components/Settings'
 import { Atmosphere } from './components/atmosphere/Atmosphere'
+import { LiveSky } from './components/LiveSky'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
 import { PwaUpdateProvider } from './lib/PwaUpdate'
@@ -23,6 +25,7 @@ import './App.css'
 function App() {
   const theme = useSettings((s) => s.theme)
   const loadPlaces = usePlaces((s) => s.loadPlaces)
+  const initGeo = useGeo((s) => s.init)
   const [placesViewOpen, setPlacesViewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -35,6 +38,13 @@ function App() {
   useEffect(() => {
     loadPlaces()
   }, [loadPlaces])
+
+  // Load last-known location on entry, and auto-refresh it if the user has opted
+  // in before. First-time visitors get no prompt — they opt in via Settings →
+  // "Turn on location" (that button is the consent gate). (LOCATION-OPT-IN)
+  useEffect(() => {
+    initGeo()
+  }, [initGeo])
 
   // WEATHER-COLOR: drive the global accent from the current condition.
   // data-accent gates all the new visuals (glow, forecast bars); Classic mode
@@ -53,6 +63,7 @@ function App() {
 
   return (
     <PwaUpdateProvider>
+      {accentMode === 'imagined' && <LiveSky current={weather?.current} />}
       <Atmosphere current={weather?.current} />
       <Header
         onOpenPlaces={() => setPlacesViewOpen(true)}

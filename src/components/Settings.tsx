@@ -9,6 +9,7 @@ import {
   type TimeFormat,
 } from '../store/settings'
 import type { LocationPrecision } from '../lib/geoPrivacy'
+import { useGeo } from '../store/geo'
 import { usePwaUpdate } from '../lib/PwaUpdate'
 import { SettingsAnimations } from './SettingsAnimations'
 import './SettingsAnimations.css'
@@ -138,6 +139,44 @@ function ToggleRow({ label, ariaLabel, value, onChange }: ToggleRowProps) {
   )
 }
 
+// LOCATION: on by default. This button is the security chokepoint — an on/off
+// switch. Off wipes the on-device fix and stops all location use; nothing (not even
+// a rounded coord) leaves the app. Precise coords stay on-device (geoPrivacy rounds
+// egress). Shared by Classic and Imagined.
+function LocationSection() {
+  const enabled = useGeo((s) => s.enabled)
+  const lat = useGeo((s) => s.lat)
+  const loading = useGeo((s) => s.loading)
+  const error = useGeo((s) => s.error)
+  const approximate = useGeo((s) => s.approximate)
+  const setEnabled = useGeo((s) => s.setEnabled)
+
+  let note: string
+  if (loading) note = 'Getting your location…'
+  else if (!enabled) note = 'Location is off. Nothing is acquired or sent. Turn on to use local weather.'
+  else if (error) note = 'Couldn’t get precise or network location. Add a place by name instead.'
+  else if (lat !== null && approximate) note = 'On — approximate, from your network (GPS was blocked). Kept on your device. Tap refresh to try GPS.'
+  else if (lat !== null) note = 'On — starts automatically each visit, kept on your device. Tap refresh to update.'
+  else note = 'On — tap the ⌖ locate button in the top bar. If GPS is blocked, it uses your approximate network location.'
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-title">Location</div>
+      <button
+        type="button"
+        className="settings-update-check"
+        onClick={() => setEnabled(!enabled)}
+        disabled={loading}
+        aria-busy={loading}
+        aria-pressed={enabled}
+      >
+        {enabled ? 'Location: On — tap to turn off' : 'Location: Off — tap to turn on'}
+      </button>
+      <div className="settings-update-note">{note}</div>
+    </div>
+  )
+}
+
 function UpdatesSection() {
   const { checkForUpdates, checkResult } = usePwaUpdate()
   const checking = checkResult === 'checking'
@@ -209,6 +248,8 @@ export function Settings() {
           on-device for the local sky &amp; astronomy math.
         </div>
       </div>
+
+      <LocationSection />
 
       <div className="settings-section">
         <div className="settings-section-title">Units</div>

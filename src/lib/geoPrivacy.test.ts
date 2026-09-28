@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { roundCoord, PRECISION_DECIMALS, EGRESS_DECIMALS } from './geoPrivacy'
+import { roundCoord, PRECISION_DECIMALS, EGRESS_DECIMALS, alertPrecision } from './geoPrivacy'
 
 // Times Square — a coordinate with more precision than any level allows.
 const LAT = 40.758896
@@ -40,5 +40,15 @@ describe('roundCoord — 3-level location precision', () => {
 
   it('precision → decimals is the documented ladder', () => {
     expect(PRECISION_DECIMALS).toEqual({ exact: null, surrounding: 2, general: 1 })
+  })
+})
+
+describe('alertPrecision — warnings never use coarser than surrounding', () => {
+  it('exact and surrounding pass through unchanged', () => {
+    expect(alertPrecision('exact')).toBe('exact')
+    expect(alertPrecision('surrounding')).toBe('surrounding')
+  })
+  it('general is upgraded to surrounding so a local advisory is not dropped', () => {
+    expect(alertPrecision('general')).toBe('surrounding')
   })
 })

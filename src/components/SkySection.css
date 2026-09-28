@@ -118,6 +118,34 @@
   place-items: center;
 }
 
+/* Moon surface detail — realistic maria/craters, and a soft glow around the disc.
+   Fixed lunar tones (theme-independent: the moon is cream in any theme). */
+.sky-moon-svg {
+  filter: drop-shadow(0 0 8px rgba(245, 240, 214, 0.16));
+}
+.sky-moon-full {
+  filter: drop-shadow(0 0 14px rgba(255, 250, 230, 0.28));
+}
+.sky-moon-maria ellipse {
+  fill: rgba(92, 88, 66, 0.28);
+}
+.sky-moon-crater {
+  fill: rgba(68, 64, 46, 0.36);
+  stroke: rgba(255, 250, 230, 0.16);
+  stroke-width: 0.6;
+}
+
+/* Sun hero — luminous solar gold with a glowing corona (theme-independent). */
+.sky-sun-svg {
+  filter: drop-shadow(0 0 11px rgba(255, 170, 70, 0.42));
+}
+.sky-sun-rays { opacity: 0.8; }
+.sky-sun-ray {
+  stroke: #ffc061;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
 .sky-hero-caption {
   display: flex;
   flex-direction: column;
@@ -182,7 +210,64 @@
   letter-spacing: 2px;
   margin-bottom: 8px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
+
+/* Section-title glyphs (Imagined) — a glowing sun / phase-true moon so the SUN and
+   MOON blocks pop, matching the star-glyph language. */
+.sky-title-glyph { flex-shrink: 0; }
+.sky-title-sun { filter: drop-shadow(0 0 4px rgba(255, 180, 90, 0.6)); }
+.sky-title-sun-rays { stroke: #ffc061; stroke-width: 2; stroke-linecap: round; }
+.sky-title-moon { filter: drop-shadow(0 0 4px rgba(233, 226, 198, 0.5)); }
+
+/* Sun-path arc (Imagined) — the sun rides its real daily arc; the elapsed part glows gold. */
+.sky-arc { margin: 2px 0 10px; }
+.sky-arc svg { display: block; overflow: visible; }
+.sky-arc-horizon { stroke: color-mix(in srgb, var(--accent) 22%, transparent); stroke-width: 1; }
+.sky-arc-track { stroke: rgba(255, 190, 110, 0.2); stroke-width: 2; stroke-linecap: round; }
+.sky-arc-progress { stroke-width: 3; stroke-linecap: round; }
+.sky-arc-tick { fill: color-mix(in srgb, var(--accent) 45%, transparent); }
+.sky-arc-sun { fill: #ffd479; }
+.sky-arc-sun-glow { fill: rgba(255, 180, 80, 0.4); filter: blur(3px); }
+.sky-arc-labels { display: flex; justify-content: space-between; margin-top: 2px; }
+.sky-arc-end { display: flex; flex-direction: column; gap: 2px; }
+.sky-arc-end--mid { align-items: center; }
+.sky-arc-end--right { align-items: flex-end; }
+.sky-arc-end-label {
+  font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: color-mix(in srgb, var(--accent) 45%, #e6ecf6);
+}
+.sky-arc-end-time { font-size: 12px; color: var(--text); font-feature-settings: "tnum"; }
+
+.sky-kv--compact { gap: 5px 14px; }
+.sky-kv--compact .sky-kv-label { font-size: 8px; }
+.sky-kv--compact .sky-kv-value { font-size: 12px; }
+
+/* Moon phase card (Imagined) */
+.sky-moon-card { display: flex; align-items: center; gap: 14px; padding: 2px 0 4px; }
+.sky-moon-card-disc { flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(233, 226, 198, 0.25)); }
+.sky-moon-card-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sky-moon-card-name { font-size: 15px; color: var(--text); font-weight: 500; }
+.sky-moon-illum { display: flex; align-items: center; gap: 8px; }
+.sky-moon-illum-bar {
+  flex: 1; max-width: 120px; height: 4px; border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent); overflow: hidden;
+}
+.sky-moon-illum-bar span {
+  display: block; height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 45%, transparent), var(--accent));
+}
+.sky-moon-illum-pct {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 45%, #e6ecf6); white-space: nowrap;
+}
+.sky-moon-card-times {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 45%, #e6ecf6); display: flex; gap: 6px;
+}
+.sky-moon-card-times .sky-dot { opacity: 0.5; }
 
 .sky-kv {
   display: grid;
@@ -225,7 +310,7 @@
 :root[data-accent='imagined'] .sky-row-meta,
 :root[data-accent='imagined'] .sky-row-meta.dim,
 :root[data-accent='imagined'] .sky-hero-meta-sub {
-  color: color-mix(in srgb, var(--accent) 52%, transparent);
+  color: color-mix(in srgb, var(--accent) 38%, #e6ecf6);
 }
 
 .sky-row {
@@ -266,6 +351,41 @@
 
 .sky-row-meta.bright { color: var(--text); }
 .sky-row-meta.dim { color: var(--text-faint); }
+
+/* Star-glyph rows (Imagined only). Classic keeps its original 3-column layout. */
+.sky-row--glyph {
+  grid-template-columns: 34px 1fr auto;
+  gap: 12px;
+}
+.sky-obj-glyph { flex-shrink: 0; }
+.sky-row-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sky-row-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 38%, #e6ecf6);
+}
+/* constellation line-art: cyan-white stars, one gold lead star, soft accent lines */
+.sky-lines line { stroke: rgba(125, 180, 255, 0.42); stroke-width: 1; stroke-linecap: round; }
+.sky-star { fill: #e6f0ff; filter: drop-shadow(0 0 2px rgba(150, 200, 255, 0.7)); }
+.sky-star--lead { fill: #ffd98a; filter: drop-shadow(0 0 3px rgba(255, 200, 110, 0.85)); }
+.sky-glyph-halo { filter: blur(2.2px); }
+
+/* Modern hairline dividers in Imagined — a centred gradient instead of a flat rule. */
+:root[data-accent='imagined'] .sky-row { border-bottom: none; position: relative; }
+:root[data-accent='imagined'] .sky-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent) 50%, transparent);
+}
 
 .sky-empty {
   font-family: var(--mono);

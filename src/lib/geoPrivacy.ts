@@ -28,3 +28,14 @@ export function roundCoord(v: number, precision: LocationPrecision = 'surroundin
   const f = 10 ** dp
   return Math.round(v * f) / f
 }
+
+/**
+ * Precision for SAFETY ALERTS. Warnings (e.g. a coastal flood advisory) must
+ * reach the user, so alert lookups never use coarser than `surrounding` — a
+ * `general` (~11 km) coordinate can fall outside a local advisory zone and drop
+ * the warning. Exact/surrounding pass through unchanged; general is upgraded to
+ * surrounding. The weather fetch still honours the user's chosen precision.
+ */
+export function alertPrecision(p: LocationPrecision): LocationPrecision {
+  return p === 'general' ? 'surrounding' : p
+}

@@ -1,0 +1,142 @@
+/* LIVE SKY — Imagined "living window". All rules are gated to
+   :root[data-accent='imagined'] so Classic is byte-for-byte untouched. */
+
+.live-sky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;   /* fallback for older engines */
+  height: 100lvh;  /* largest viewport height: stays put when the mobile URL bar
+                      hides/shows, so scrolling never resizes the sky (no jump). */
+  pointer-events: none;
+  display: block;
+}
+
+/* Two stacked layers. The static sky is painted once and promoted to its own
+   compositor layer (translateZ) so scrolling never triggers a repaint of it —
+   only the thin transparent rain layer above animates. This is the smoothness. */
+.live-sky--static {
+  z-index: -2;
+  transform: translateZ(0);
+  will-change: transform;
+}
+.live-sky--rain {
+  z-index: -1;
+}
+
+/* Exposure veil: sits above the sky + rain, below the instrument chrome. The
+   Theme toggle tints it — Light brightens the atmosphere, Night deepens it, Dark
+   is neutral — so the BACKGROUND lightens/darkens like Classic's does, WITHOUT
+   moving the (accurate) sun, moon or stars. It's exposure, not a fake sky. */
+.live-sky--veil {
+  z-index: -1;
+  background: transparent;
+  transition: background 0.35s ease;
+}
+:root[data-accent='imagined'].night .live-sky--veil { background: rgba(2, 4, 10, 0.48); }
+:root[data-accent='imagined'].light .live-sky--veil { background: rgba(150, 175, 220, 0.30); }
+@media (prefers-color-scheme: light) {
+  :root[data-accent='imagined'].auto .live-sky--veil { background: rgba(150, 175, 220, 0.30); }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-accent='imagined'].auto .live-sky--veil { background: rgba(2, 4, 10, 0.30); }
+}
+
+/* The living sky is dark, so Imagined always uses a dark, legible palette —
+   regardless of the light/dark/night/auto toggle (that toggle shapes Classic).
+   This keeps chrome readable over the sky in every theme. */
+:root[data-accent='imagined'] {
+  --text: #f5f5f5;
+  /* Default Imagined accent — used before any weather loads (no data-cond yet), so
+     Imagined never falls back to the Classic orange. A neutral sky blue. Weather
+     conditions override this once loaded. */
+  --accent: #a9c6f5;
+  --accent-glow: rgba(169, 198, 245, 0.35);
+  --accent-soft: rgba(169, 198, 245, 0.10);
+  /* Lifted for legibility over the live sky (secondary/unit labels sit on
+     translucent panels — these need more luminance than a flat-bg theme). */
+  --text-dim: #d6dce8;
+  --text-faint: #bfc6d5;
+  --surface: rgba(18, 22, 34, 0.42);
+  --surface-2: rgba(24, 28, 42, 0.42);
+  --surface-3: rgba(32, 38, 56, 0.42);
+  --bg-grid: transparent;
+  color-scheme: dark;
+}
+
+/* Text stays light in every Imagined theme (never dark-on-dark), and a soft shadow
+   keeps it readable whether the veil brightens (Light) or deepens (Night) the sky. */
+:root[data-accent='imagined'] body {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Lighter weather accents in Imagined ONLY — the accent is used as text colour
+   throughout, and the darker shades wash out over the sky. These lift every
+   accent-coloured value/label/border for legibility. Classic accents untouched
+   (this needs data-accent='imagined', and higher specificity than the base cond). */
+:root[data-accent='imagined'][data-cond='clear-day']   { --accent: #ffb866; }
+:root[data-accent='imagined'][data-cond='clear-night'] { --accent: #8fe6f5; }
+:root[data-accent='imagined'][data-cond='partly']      { --accent: #c4d5f7; }
+:root[data-accent='imagined'][data-cond='cloud']       { --accent: #aab6ff; }
+:root[data-accent='imagined'][data-cond='fog']         { --accent: #b6c8ea; }
+:root[data-accent='imagined'][data-cond='rain']        { --accent: #93d8fb; }
+:root[data-accent='imagined'][data-cond='snow']        { --accent: #a6e6f6; }
+:root[data-accent='imagined'][data-cond='storm']       { --accent: #ef86f2; }
+
+/* Reveal the sky behind the instrument chrome (Imagined only). */
+:root[data-accent='imagined'],
+:root[data-accent='imagined'] body,
+:root[data-accent='imagined'] #root {
+  background: transparent !important;
+}
+
+/* The hero becomes a translucent window onto the sky (Imagined only). */
+:root[data-accent='imagined'] .hero {
+  background: rgba(8, 11, 22, 0.5) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+/* Full "one atmosphere": every cell is a translucent window onto the sky.
+   NOTE: no backdrop-filter on the cards — blur on ~15 elements over an animating
+   canvas tanked the frame rate (21fps). Translucent fill alone keeps the sky
+   reading through while holding the 1–120fps smoothness signature. Only the hero
+   (a single element) carries a blur. */
+:root[data-accent='imagined'] .metric,
+:root[data-accent='imagined'] .hour-card,
+:root[data-accent='imagined'] .day-row {
+  background: rgba(8, 11, 22, 0.6) !important;
+}
+:root[data-accent='imagined'] .daily-list {
+  background: transparent !important;
+}
+
+/* Safety alerts get a solid dark backing so the warning text is always crisp
+   over the sky (this is important information — never let it wash out). */
+:root[data-accent='imagined'] .alert-banner {
+  background: rgba(8, 11, 22, 0.72) !important;
+}
+
+/* Modals (Settings, Places) must be SOLID in Imagined — the translucent sky
+   surface let the page behind bleed through and made them unreadable. */
+:root[data-accent='imagined'] .modal {
+  background: #0b0f1a !important;
+}
+:root[data-accent='imagined'] .modal-close {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Light theme brightens the sky, so give the panels a touch more backing to keep
+   the light chrome text crisp against the lighter atmosphere. */
+:root[data-accent='imagined'].light .hero,
+:root[data-accent='imagined'].light .metric,
+:root[data-accent='imagined'].light .hour-card,
+:root[data-accent='imagined'].light .day-row {
+  background: rgba(8, 11, 22, 0.66) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* the canvas already renders a single static, accurate frame */
+  .live-sky { }
+}
