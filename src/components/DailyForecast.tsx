@@ -21,6 +21,7 @@ interface DailyForecastProps {
 
 export function DailyForecast({ daily }: DailyForecastProps) {
   const showDaily = useSettings((s) => s.showDaily)
+  const accentMode = useSettings((s) => s.accentMode)
   const gradId = useId()
 
   if (!showDaily) return null
@@ -54,7 +55,11 @@ export function DailyForecast({ daily }: DailyForecastProps) {
             <div
               key={time}
               className="day-row"
-              style={{ '--accent': wxAccent(daily.weather_code[i]) } as CSSProperties}
+              // Imagined only: each day takes its own weather colour. Classic keeps
+              // the base orange accent (no inline override).
+              style={accentMode === 'imagined'
+                ? ({ '--accent': wxAccent(daily.weather_code[i]) } as CSSProperties)
+                : undefined}
             >
               <div className={`day-name ${i === 0 ? 'today' : ''}`}>
                 {formatDay(time, i)}

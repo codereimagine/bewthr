@@ -20,6 +20,7 @@ interface HourlyStripProps {
 export function HourlyStrip({ hourly }: HourlyStripProps) {
   const showHourly = useSettings((s) => s.showHourly)
   const timeFormat = useSettings((s) => s.timeFormat)
+  const accentMode = useSettings((s) => s.accentMode)
 
   if (!showHourly) return null
 
@@ -41,7 +42,11 @@ export function HourlyStrip({ hourly }: HourlyStripProps) {
             <div
               key={idx}
               className={`hour-card ${i === 0 ? 'now' : ''}`}
-              style={{ '--accent': wxAccent(hourly.weather_code[idx], hourly.is_day[idx]) } as CSSProperties}
+              // Imagined only: each hour takes its own weather colour. Classic keeps
+              // the base orange accent (no inline override) — PRIVACY of the look.
+              style={accentMode === 'imagined'
+                ? ({ '--accent': wxAccent(hourly.weather_code[idx], hourly.is_day[idx]) } as CSSProperties)
+                : undefined}
             >
               <div className="hour-time">
                 {i === 0 ? 'Now' : formatTime(hourly.time[idx], timeFormat)}
