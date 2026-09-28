@@ -35,8 +35,16 @@ interface Fix {
 const FACE = 180 // face south; sun/moon transit the southern sky (N hemisphere)
 const FOV = 170
 
+// Parse a colour to [r,g,b]. Handles both `#rrggbb` AND `rgb(r,g,b)` so a colour
+// that was already produced by mix() can be safely mixed again (the rain path
+// re-mixes skyStops output — feeding an rgb() string here previously produced NaN
+// and crashed the gradient on every rainy frame).
 function hex(h: string): [number, number, number] {
-  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+  if (h.charCodeAt(0) === 35 /* '#' */) {
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+  }
+  const m = h.match(/\d+/g)
+  return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : [0, 0, 0]
 }
 function mix(a: string, b: string, t: number): string {
   const A = hex(a), B = hex(b)
@@ -90,13 +98,22 @@ export function LiveSky({ current }: LiveSkyProps) {
     if (!ctx) return
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    const bucket: WxBucket = current ? wxBucket(current.weather_code, current.is_day) : 'clear-night'
+    // Preview-only overrides (harmless without the query params): let QA render the
+    // sky at any condition / sun altitude to verify parity with a mockup.
+    const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()
+    const forceWx = q.get('_wx') as WxBucket | null
+    const forceAltStr = q.get('_sunalt')
+    const forceAlt = forceAltStr != null ? parseFloat(forceAltStr) : null
+    const bucket: WxBucket = forceWx || (current ? wxBucket(current.weather_code, current.is_day) : 'clear-night')
     const cloudy = bucket === 'cloud' || bucket === 'fog'
     const rainy = bucket === 'rain' || bucket === 'storm'
     const snowy = bucket === 'snow'
 
+    const code = current ? current.weather_code : 0
+    const overcast = code === 3 || bucket === 'fog'
     let W = 0, H = 0, DPR = 1
     let drops: { x: number; y: number; l: number; s: number }[] = []
+    let clouds: { x: number; y: number; r: number; spd: number; o: number }[] = []
     function resize() {
       DPR = Math.min(devicePixelRatio || 1, 2)
       const r = canvas!.getBoundingClientRect()
@@ -107,6 +124,15 @@ export function LiveSky({ current }: LiveSkyProps) {
         x: Math.random() * W, y: Math.random() * H,
         l: snowy ? 2.5 * DPR : (10 + Math.random() * 18) * DPR,
         s: snowy ? 1 + Math.random() * 1.5 : 7 + Math.random() * 9,
+      }))
+      // volumetric clouds — dense when overcast/rain, a few when partly cloudy
+      const cn = rainy ? 8 : overcast ? 9 : cloudy ? 6 : (code === 1 || code === 2) ? 3 : 0
+      clouds = Array.from({ length: cn }, (_, i) => ({
+        x: (i + 0.5) / Math.max(cn, 1) + (Math.random() - 0.5) * 0.12,
+        y: 0.05 + Math.random() * 0.42,
+        r: (120 + Math.random() * 130) * DPR,
+        spd: 0.15 + Math.random() * 0.3,
+        o: (rainy || overcast ? 0.5 : 0.34) + Math.random() * 0.2,
       }))
     }
     const ro = new ResizeObserver(resize)
@@ -120,15 +146,24 @@ export function LiveSky({ current }: LiveSkyProps) {
 
     function draw(now: number) {
       const fix = fixRef.current
-      const sunAlt = fix ? fix.sunAlt : -30
+      const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
       ctx!.clearRect(0, 0, W, H)
 
-      // sky gradient from the real sun altitude (storm darkens + desaturates)
+      // sky gradient from the real sun altitude. Rain only darkens the TOP a
+      // little — the warm horizon (dusk afterglow / day glow) must survive.
       let [top, bot] = skyStops(sunAlt)
-      if (rainy) { top = mix(top, '#0b1526', 0.6); bot = mix(bot, '#1a2740', 0.6) }
+      if (rainy) top = mix(top, '#0b1526', 0.35)
       const sky = ctx!.createLinearGradient(0, 0, 0, H)
       sky.addColorStop(0, top); sky.addColorStop(1, bot)
       ctx!.fillStyle = sky; ctx!.fillRect(0, 0, W, H)
+
+      // horizon glow — WARM through twilight (sun above ~-8°, i.e. the afterglow),
+      // cool deep-night. This is the mockup's amber lower band.
+      const twilight = sunAlt > -8
+      const hz = ctx!.createLinearGradient(0, H * 0.55, 0, H)
+      hz.addColorStop(0, 'rgba(0,0,0,0)')
+      hz.addColorStop(1, twilight ? 'rgba(255,180,120,.24)' : 'rgba(120,140,195,.12)')
+      ctx!.fillStyle = hz; ctx!.fillRect(0, H * 0.55, W, H * 0.45)
 
       // sun bloom in its true direction
       if (fix && sunAlt > -6) {
@@ -144,21 +179,26 @@ export function LiveSky({ current }: LiveSkyProps) {
         ctx!.globalCompositeOperation = 'source-over'
       }
 
-      // stars only in real night, and only when the sky isn't sealed over
-      if (fix && sunAlt < -8 && !rainy && !(cloudy && !snowy)) {
-        const tw = reduce ? 1 : 0.6 + 0.4 * Math.sin((now - t0) * 0.001)
-        for (let i = 0; i < 130; i++) {
+      // stars in real night — full when clear, dimmer through partly cloud,
+      // hidden only when overcast or raining (sky sealed over)
+      if (fix && sunAlt < -8 && !rainy && !overcast) {
+        const dim = cloudy ? 0.5 : 1
+        const tw = reduce ? 1 : 0.65 + 0.35 * Math.sin((now - t0) * 0.001)
+        for (let i = 0; i < 180; i++) {
           const x = ((i * 9301 + 49297) % 233280) / 233280 * W
-          const y = ((i * 4523 + 1013) % 233280) / 233280 * H * 0.6
-          ctx!.globalAlpha = (0.2 + (i % 7) / 10) * tw
-          ctx!.fillStyle = '#eaf1ff'
-          ctx!.fillRect(x, y, 1.3 * DPR, 1.3 * DPR)
+          const y = ((i * 4523 + 1013) % 233280) / 233280 * H * 0.62
+          const bright = i % 11 === 0
+          ctx!.globalAlpha = (0.35 + (i % 5) / 8) * tw * dim
+          ctx!.fillStyle = bright ? '#ffffff' : '#dfe8ff'
+          const s = (bright ? 2.3 : 1.3) * DPR
+          ctx!.fillRect(x, y, s, s)
         }
         ctx!.globalAlpha = 1
       }
 
-      // moon at its real position + phase
-      if (fix && fix.moonAlt > 0) {
+      // moon at its real position + phase — hidden when the sky is sealed over
+      // (overcast / rain / fog), same as the stars
+      if (fix && fix.moonAlt > 0 && !rainy && !overcast) {
         const p = project(fix.moonAz, fix.moonAlt, W, H)
         if (p.vis) {
           const r = 24 * DPR
@@ -174,6 +214,29 @@ export function LiveSky({ current }: LiveSkyProps) {
           ctx!.fillStyle = fix.moonFrac < 0.5 ? '#1a2038' : '#eef2ff'
           ctx!.beginPath(); ctx!.ellipse(p.x, p.y, Math.abs(off), r, 0, 0, 7); ctx!.fill()
           ctx!.restore()
+        }
+      }
+
+      // clouds — drifting volumetric puffs, lit toward the sun by day or the moon
+      // at night. Driven by the xengine light position + the live condition.
+      if (clouds.length) {
+        const dayLit = !!(fix && fix.sunAlt > 0)
+        const src = dayLit
+          ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H)
+          : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
+        const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
+        const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
+        for (const c of clouds) {
+          const x = (((c.x + (now - t0) * 0.00002 * c.spd) % 1.3) - 0.15) * W
+          const y = c.y * H * 0.55
+          const rr = c.r
+          const base = ctx!.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
+          base.addColorStop(0, `rgba(${dark},${c.o})`); base.addColorStop(1, `rgba(${dark},0)`)
+          ctx!.fillStyle = base; ctx!.beginPath(); ctx!.arc(x, y + rr * 0.15, rr, 0, 7); ctx!.fill()
+          const lx = x + (src.x - x) * 0.1, ly = y - rr * 0.22
+          const crown = ctx!.createRadialGradient(lx, ly, 0, lx, ly, rr * 0.8)
+          crown.addColorStop(0, litCol); crown.addColorStop(1, 'transparent')
+          ctx!.fillStyle = crown; ctx!.beginPath(); ctx!.arc(lx, ly, rr * 0.8, 0, 7); ctx!.fill()
         }
       }
 
@@ -204,8 +267,8 @@ export function LiveSky({ current }: LiveSkyProps) {
       }
 
       // cinematic vignette for depth + chrome contrast
-      const vg = ctx!.createRadialGradient(W / 2, H * 0.42, H * 0.2, W / 2, H * 0.5, H * 0.9)
-      vg.addColorStop(0, 'transparent'); vg.addColorStop(1, 'rgba(4,6,14,0.5)')
+      const vg = ctx!.createRadialGradient(W / 2, H * 0.42, H * 0.25, W / 2, H * 0.5, H * 0.95)
+      vg.addColorStop(0, 'transparent'); vg.addColorStop(1, 'rgba(4,6,14,0.3)')
       ctx!.fillStyle = vg; ctx!.fillRect(0, 0, W, H)
 
       if (!reduce) raf = requestAnimationFrame(draw)

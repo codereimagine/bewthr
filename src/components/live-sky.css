@@ -11,6 +11,20 @@
   display: block;
 }
 
+/* The living sky is dark, so Imagined always uses a dark, legible palette —
+   regardless of the light/dark/night/auto toggle (that toggle shapes Classic).
+   This keeps chrome readable over the sky in every theme. */
+:root[data-accent='imagined'] {
+  --text: #f5f5f5;
+  --text-dim: #9aa3b2;
+  --text-faint: #6b7280;
+  --surface: rgba(18, 22, 34, 0.42);
+  --surface-2: rgba(24, 28, 42, 0.42);
+  --surface-3: rgba(32, 38, 56, 0.42);
+  --bg-grid: transparent;
+  color-scheme: dark;
+}
+
 /* Reveal the sky behind the instrument chrome (Imagined only). */
 :root[data-accent='imagined'],
 :root[data-accent='imagined'] body,
