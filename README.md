@@ -1,115 +1,59 @@
+<div align="center">
+
 # bewthr
 
-Local weather PWA. The **continuum** axis of codereimagine.
+### A living, astronomically-accurate weather app — private by design.
 
-Live: [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)
+**[Open bewthr →](https://codereimagine.github.io/bewthr/)**
 
-By **Bert Peters**.
+<p>
+  <img src="screenshots/hero-night.png" width="30%" alt="bewthr — night sky, geolocated current conditions" />
+  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr — Sky Tonight: real moon phase, sun-path arc, planets and constellations" />
+  <img src="screenshots/hero-day.png" width="30%" alt="bewthr — daytime living sky with real precipitation" />
+</p>
 
-## Screenshots
+</div>
 
-<table>
-  <tr>
-    <th>Mobile</th>
-    <th>Desktop</th>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/weather-mobile.png" alt="Weather — mobile" width="280"></td>
-    <td><img src="docs/screenshots/weather-desktop.png" alt="Weather — desktop" width="500"></td>
-  </tr>
-  <tr>
-    <td colspan="2"><sub>Current conditions, metrics, saved places, hourly strip, 7-day forecast.</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/sky-mobile.png" alt="Sky Tonight — mobile" width="280"></td>
-    <td><img src="docs/screenshots/sky-desktop.png" alt="Sky Tonight — desktop" width="500"></td>
-  </tr>
-  <tr>
-    <td colspan="2"><sub>Sky Tonight panel — sun, moon, planets, constellations overhead, all computed in-browser.</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/places-mobile.png" alt="Places — mobile" width="280"></td>
-    <td><img src="docs/screenshots/places-desktop.png" alt="Places — desktop" width="500"></td>
-  </tr>
-  <tr>
-    <td colspan="2"><sub>Search any city worldwide and manage saved locations.</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/settings-mobile.png" alt="Settings — mobile" width="280"></td>
-    <td><img src="docs/screenshots/settings-desktop.png" alt="Settings — desktop" width="500"></td>
-  </tr>
-  <tr>
-    <td colspan="2"><sub>Theme, units, time format, section toggles, animation level, refresh interval.</sub></td>
-  </tr>
-</table>
+---
 
-> Screenshots in `docs/screenshots/` are produced by `node scripts/capture-screenshots.mjs` against `npm run preview`. Re-run after UI changes.
+bewthr shows the weather as a **living sky** rendered from real astronomy for your exact place and time — the sky brightens and darkens with the sun, the moon shows its true phase, rain and clouds move overhead — with the instrument chrome of a proper dashboard on top. It's fast, it's a PWA, and your location never leaves your device.
 
-## What it does
+## What makes it bewthr
 
-- Current conditions, hourly forecast, daily forecast, and active alerts.
-- Saved places (search any city worldwide) with offline-cached results.
-- "Sky Tonight" panel: sun, moon, planets, constellations overhead — all
-  computed locally from your coordinates.
-- Atmospheric overlay reacts to weather code and time of day: stars at
-  night, drifting clouds, rain, snow.
-- Settings: theme, units (imperial / metric), time format, section
-  toggles, animation level (off / reduced / on with OS reduce-motion
-  clamp), refresh interval.
-- Installable to home screen; works offline once cached.
+- **A live, accurate sky.** The background is computed, not a stock image — sun altitude sets the colour of the sky, the moon renders at its real phase, stars appear only when it's truly dark, and precipitation reflects the current conditions for *your* coordinates.
+- **Sky Tonight.** A real astronomy panel: a sun-path arc (rise → solar noon → set, with the day so far lit up), the live moon phase with illumination, golden/blue-hour and twilight times, and the planets & constellations overhead right now — each at its true altitude and bearing.
+- **Private by design.** Your precise coordinates stay **on your device**; only coarse, rounded coordinates are ever sent to fetch weather. Location is a single on/off switch — turn it off and nothing is acquired or sent.
+- **Ad-free, tracker-free, open source.** No accounts, no analytics, no ads. Just weather.
+- **Accessible.** WCAG-audited contrast over the animated sky, dark / light / night / auto themes, reduced-motion support.
+- **Two moods.** *Imagined* mode is the full living sky; *Classic* is a clean, minimal instrument view. One tap to switch.
 
-## Data sources
+## How it works
 
-- Weather + geocoding: [Open-Meteo](https://open-meteo.com) (no key
-  required).
-- US alerts: [NWS API](https://www.weather.gov/documentation/services-web-api)
-  (no key required, US-only coverage).
-- Sky calculations: [astronomy-engine](https://github.com/cosinekitty/astronomy)
-  (runs in-browser, no network).
+- **Keyless weather** — Open-Meteo with a MET.no fallback, plus NWS alerts. No API keys.
+- **Astronomy** — sun/moon/planet/constellation positions computed locally with [`astronomy-engine`](https://github.com/cosinekitty/astronomy).
+- **Privacy** — precise location lives in on-device storage; egress is rounded (≈1 km "surrounding" by default, selectable down to ≈11 km "general", or exact). If browser GPS is blocked, it falls back to approximate network location — still no prompt required.
+- **Rendering** — the sky is a layered HTML canvas: a static, compositor-cached sky layer with a lightweight animated precipitation layer on top, for smooth scrolling and battery-friendly motion.
 
-## Stack
+## Tech
 
-React 19 · Vite 8 · TypeScript · Tailwind 4 · Zustand (persist) ·
-vite-plugin-pwa (Workbox) · idb-keyval.
+React 19 · TypeScript · Vite · Canvas 2D · `astronomy-engine` · Zustand · vite-plugin-pwa
 
-## Develop
+## Run it locally
 
-```sh
+```bash
+git clone https://github.com/codereimagine/bewthr.git
+cd bewthr
 npm install
-npm run dev      # http://localhost:5173
-npm run lint
-npm run build    # tsc -b && vite build
-npm run preview  # serve the production bundle
+npm run dev        # local dev server
+npm run build      # production build → dist/
+npm run preview    # preview the production build
+npm test           # unit tests
 ```
 
-### Dev override
+## Credits
 
-Append `?atmo=stars|cloud|rain|snow|storm|all` to the dev URL to force
-a specific atmosphere effect. Tree-shaken from production builds.
-
-## Project layout
-
-```
-src/
-  components/
-    atmosphere/    # particle layers (stars, clouds, rain, snow)
-    Sky*           # sun / moon / planets / constellations panels
-    Settings*      # settings UI
-    Modal.tsx      # shared modal shell
-  hooks/           # useWeather, useSky, useGeolocation, useAnimationMode
-  lib/             # openMeteo, nws, geocode, astronomy, skyFormat
-  store/           # zustand stores (settings, places)
-deployment-process/ # launch/deployment process — audit chain + design previews (visual lock before any code)
-```
-
-## Related
-
-bewthr is one of three axes of codereimagine:
-
-- **bewthr** — continuum (weather)
-- **[uptyme](https://github.com/codereimagine/uptyme)** — time
-- **[starnav](https://github.com/codereimagine/starnav)** — space
+Built with [Claude Code](https://claude.com/claude-code).
 
 ## License
 
-Apache License 2.0 — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](LICENSE).
