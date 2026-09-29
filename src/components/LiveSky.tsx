@@ -69,7 +69,7 @@ function skyStops(sunAlt: number): [string, string] {
 }
 
 function project(az: number, alt: number, W: number, H: number) {
-  let d = ((az - FACE + 540) % 360) - 180
+  const d = ((az - FACE + 540) % 360) - 180
   return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: H - (alt / 90) * H, vis: Math.abs(d) < FOV / 2 }
 }
 
@@ -174,8 +174,8 @@ export function LiveSky({ current }: LiveSkyProps) {
       const fix = fixRef.current
       const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
       octx.clearRect(0, 0, W, H)
-      let [top, bot] = skyStops(sunAlt)
-      if (rainy) top = mix(top, '#0b1526', 0.35)
+      const [top0, bot] = skyStops(sunAlt)
+      const top = rainy ? mix(top0, '#0b1526', 0.35) : top0
       const sky = octx.createLinearGradient(0, 0, 0, H)
       sky.addColorStop(0, top); sky.addColorStop(1, bot)
       octx.fillStyle = sky; octx.fillRect(0, 0, W, H)
