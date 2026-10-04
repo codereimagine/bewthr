@@ -111,6 +111,7 @@ export function PlacesView({ open, onClose }: PlacesViewProps) {
     <div
       className={`places-view ${open ? 'open' : ''}`}
       aria-hidden={!open}
+      inert={!open}
       role="dialog"
       aria-label="Add Location"
     >

@@ -70,6 +70,7 @@ function App() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
       <MetaBar />
+      <main className="app-main">
       <ErrorBoundary>
         <WeatherHero
           weather={weather}
@@ -87,6 +88,7 @@ function App() {
         {weather?.daily && <DailyForecast daily={weather.daily} />}
         <SkySection />
       </ErrorBoundary>
+      </main>
       <div className="footer">
         bewthr v0.1 {'\u00B7'} open source
       </div>
