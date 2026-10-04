@@ -72,6 +72,38 @@ export function getSun(lat: number, lon: number, date: Date = new Date()): SunIn
   }
 }
 
+// Lightweight sun altitude (degrees) at an arbitrary instant — just the horizon
+// coordinate, none of getSun's rise/set/twilight searches. Cheap enough to sample
+// across the day and to call on a live tick for the sun-path arc.
+export function sunAltitude(lat: number, lon: number, date: Date): number {
+  const observer = new Observer(lat, lon, 0)
+  const equ = Equator(SUN, date, observer, true, true)
+  return Horizon(date, observer, equ.ra, equ.dec, 'normal').altitude
+}
+
+// The daylight window to draw the sun-path arc over: rise on the left, set on the
+// right, always in order (rise < set) and bracketing `date`. getSun's rise/set are
+// the NEXT ones, so after solar noon the next rise is tomorrow while the next set is
+// today — this resolves that to today's actual sunrise so the arc spans one real day.
+export function sunArcWindow(
+  lat: number,
+  lon: number,
+  date: Date,
+): { rise: Date | null; set: Date | null } {
+  const observer = new Observer(lat, lon, 0)
+  const nextRise = SearchRiseSet(SUN, observer, +1, date, 1)
+  const nextSet = SearchRiseSet(SUN, observer, -1, date, 1)
+  let rise = nextRise ? nextRise.date : null
+  const set = nextSet ? nextSet.date : null
+  // Currently daytime (set comes before the next rise): use this morning's rise.
+  if (rise && set && set.getTime() < rise.getTime()) {
+    const dayAgo = new Date(date.getTime() - 24 * 60 * 60 * 1000)
+    const prevRise = SearchRiseSet(SUN, observer, +1, dayAgo, 2)
+    if (prevRise) rise = prevRise.date
+  }
+  return { rise, set }
+}
+
 export type MoonPhaseName =
   | 'New'
   | 'Waxing Crescent'

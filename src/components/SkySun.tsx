@@ -6,10 +6,9 @@ import { SkySunArc } from './SkySunArc'
 interface SkySunProps {
   sun: SunInfo
   isDay: boolean
-  computedAt: Date
 }
 
-export function SkySun({ sun, isDay, computedAt }: SkySunProps) {
+export function SkySun({ sun, isDay }: SkySunProps) {
   const timeFormat = useSettings((s) => s.timeFormat)
   const imagined = useSettings((s) => s.accentMode) === 'imagined'
   const fmt = (d: Date | null) => formatSunTime(d, timeFormat)
@@ -37,7 +36,7 @@ export function SkySun({ sun, isDay, computedAt }: SkySunProps) {
     return (
       <div className="sky-group">
         {title}
-        <SkySunArc sun={sun} computedAt={computedAt} timeFormat={timeFormat} />
+        <SkySunArc sun={sun} timeFormat={timeFormat} />
         <div className="sky-kv sky-kv--compact">
           <div className="sky-kv-row">
             <div className="sky-kv-label">Golden hour</div>

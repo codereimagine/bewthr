@@ -84,7 +84,7 @@ export function SkySection() {
             ) : (
               <SkyHeroMoon moon={sky.moon} timeFormat={timeFormat} />
             )}
-            <SkySun sun={sky.sun} isDay={sky.isDay} computedAt={sky.computedAt} />
+            <SkySun sun={sky.sun} isDay={sky.isDay} />
             {/* At night the hero moon already shows phase/illumination/rise/set,
                 so the Moon data block is redundant — show it only in daytime,
                 where the hero is the Sun and moon rise/set is still useful. */}
