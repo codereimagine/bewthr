@@ -90,7 +90,7 @@ function App() {
       </ErrorBoundary>
       </main>
       <div className="footer">
-        bewthr v0.1 {'\u00B7'} open source
+        <span className="footer-brand">bewthr</span>
       </div>
 
       <PlacesView

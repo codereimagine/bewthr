@@ -334,6 +334,11 @@
   letter-spacing: 2px;
 }
 
+/* The brand stays lowercase — "bewthr" is always lowercase, even in the all-caps meta line. */
+.footer-brand {
+  text-transform: none;
+}
+
 .footer a {
   color: var(--text-dim);
   text-decoration: none;
