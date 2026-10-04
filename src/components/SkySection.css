@@ -227,10 +227,50 @@
 .sky-arc svg { display: block; overflow: visible; }
 .sky-arc-horizon { stroke: color-mix(in srgb, var(--accent) 22%, transparent); stroke-width: 1; }
 .sky-arc-track { stroke: rgba(255, 190, 110, 0.2); stroke-width: 2; stroke-linecap: round; }
-.sky-arc-progress { stroke-width: 3; stroke-linecap: round; }
+/* thicker, glowing elapsed line */
+.sky-arc-progress {
+  --arc-glow: rgba(255, 180, 80, 0.9);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--arc-glow));
+}
 .sky-arc-tick { fill: color-mix(in srgb, var(--accent) 45%, transparent); }
 .sky-arc-sun { fill: #ffd479; }
-.sky-arc-sun-glow { fill: rgba(255, 180, 80, 0.4); filter: blur(3px); }
+.sky-arc-sun-glow { fill: rgba(255, 180, 80, 0.45); filter: blur(3px); }
+/* moon arc — night counterpart of the sun arc, in cool silver-blue */
+.sky-arc--moon .sky-arc-track { stroke: rgba(180, 200, 235, 0.22); }
+.sky-arc--moon .sky-arc-progress { --arc-glow: rgba(185, 208, 242, 0.9); }
+.sky-arc--moon .sky-arc-tick { fill: color-mix(in srgb, #c3d4f2 55%, transparent); }
+.sky-arc-moon { fill: #e8eefc; }
+.sky-arc-moon-glow { fill: rgba(190, 210, 240, 0.45); filter: blur(3px); }
+
+/* --- living motion: the glow breathes and the line pulses (not a still frame) --- */
+.sky-arc-sun,
+.sky-arc-sun-glow,
+.sky-arc-moon,
+.sky-arc-moon-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sky-arc-sun-glow { animation: sky-breathe 3.2s ease-in-out infinite; }
+  .sky-arc-moon-glow { animation: sky-breathe 4.4s ease-in-out infinite; }
+  .sky-arc-sun { animation: sky-core 3.2s ease-in-out infinite; }
+  .sky-arc-moon { animation: sky-core 4.4s ease-in-out infinite; }
+  .sky-arc-progress { animation: sky-line 3.2s ease-in-out infinite; }
+}
+@keyframes sky-breathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.4); }
+}
+@keyframes sky-core {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@keyframes sky-line {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--arc-glow)); }
+  50% { filter: drop-shadow(0 0 6px var(--arc-glow)); }
+}
 .sky-arc-labels { display: flex; justify-content: space-between; margin-top: 2px; }
 .sky-arc-end { display: flex; flex-direction: column; gap: 2px; }
 .sky-arc-end--mid { align-items: center; }

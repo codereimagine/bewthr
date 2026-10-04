@@ -89,7 +89,7 @@ export function sunArcWindow(
   lat: number,
   lon: number,
   date: Date,
-): { rise: Date | null; set: Date | null } {
+): { rise: Date | null; set: Date | null; solarNoon: Date | null } {
   const observer = new Observer(lat, lon, 0)
   const nextRise = SearchRiseSet(SUN, observer, +1, date, 1)
   const nextSet = SearchRiseSet(SUN, observer, -1, date, 1)
@@ -101,7 +101,15 @@ export function sunArcWindow(
     const prevRise = SearchRiseSet(SUN, observer, +1, dayAgo, 2)
     if (prevRise) rise = prevRise.date
   }
-  return { rise, set }
+  // Solar noon OF THIS window — the transit at/after the window's rise — not getSun's
+  // "next transit", which is tomorrow once it's past local noon (that threw the noon
+  // marker to the far-right edge in the afternoon).
+  let solarNoon: Date | null = null
+  if (rise) {
+    const transit = SearchHourAngle(SUN, observer, 0, rise)
+    solarNoon = transit ? transit.time.date : null
+  }
+  return { rise, set, solarNoon }
 }
 
 export type MoonPhaseName =
@@ -213,6 +221,40 @@ export function getPlanets(lat: number, lon: number, date: Date = new Date()): P
       aboveHorizon: horiz.altitude > 0,
     }
   })
+}
+
+// Lightweight moon altitude (degrees) at an instant — the moon counterpart of
+// sunAltitude; cheap enough to sample across the night and on a live tick.
+export function moonAltitude(lat: number, lon: number, date: Date): number {
+  const observer = new Observer(lat, lon, 0)
+  const equ = Equator(MOON, date, observer, true, true)
+  return Horizon(date, observer, equ.ra, equ.dec, 'normal').altitude
+}
+
+// The moon-path window to draw the arc over — moon counterpart of sunArcWindow.
+// rise < set, bracketing `date`; `transit` is the moon's highest point (the apex).
+export function moonArcWindow(
+  lat: number,
+  lon: number,
+  date: Date,
+): { rise: Date | null; set: Date | null; transit: Date | null } {
+  const observer = new Observer(lat, lon, 0)
+  const nextRise = SearchRiseSet(MOON, observer, +1, date, 1)
+  const nextSet = SearchRiseSet(MOON, observer, -1, date, 1)
+  let rise = nextRise ? nextRise.date : null
+  const set = nextSet ? nextSet.date : null
+  // Moon currently up (set precedes the next rise): use the rise it came up on.
+  if (rise && set && set.getTime() < rise.getTime()) {
+    const dayAgo = new Date(date.getTime() - 25 * 60 * 60 * 1000) // moon-day ~24.8h
+    const prevRise = SearchRiseSet(MOON, observer, +1, dayAgo, 2)
+    if (prevRise) rise = prevRise.date
+  }
+  let transit: Date | null = null
+  if (rise) {
+    const t = SearchHourAngle(MOON, observer, 0, rise)
+    transit = t ? t.time.date : null
+  }
+  return { rise, set, transit }
 }
 
 export function getMoon(lat: number, lon: number, date: Date = new Date()): MoonInfo {

@@ -43,10 +43,14 @@ export function SkySunArc({ sun, timeFormat }: SkySunArcProps) {
 
   // Today's daylight window (rise < set, bracketing now), recomputed at most hourly.
   const hourBucket = Math.floor(now.getTime() / 3_600_000)
-  const { riseMs, setMs } = useMemo(() => {
-    if (lat === null || lon === null) return { riseMs: null, setMs: null }
+  const { riseMs, setMs, solarNoonMs } = useMemo(() => {
+    if (lat === null || lon === null) return { riseMs: null, setMs: null, solarNoonMs: null }
     const w = sunArcWindow(lat, lon, now)
-    return { riseMs: w.rise?.getTime() ?? null, setMs: w.set?.getTime() ?? null }
+    return {
+      riseMs: w.rise?.getTime() ?? null,
+      setMs: w.set?.getTime() ?? null,
+      solarNoonMs: w.solarNoon?.getTime() ?? null,
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, hourBucket])
   const span = riseMs !== null && setMs !== null ? setMs - riseMs : 0
@@ -77,12 +81,13 @@ export function SkySunArc({ sun, timeFormat }: SkySunArcProps) {
   const sunX = fracToX(frac)
   const sunY = day ? altToY(liveAlt) : HORIZON_Y + 12
 
-  // noon marker at the true apex (solar-noon altitude)
+  // noon marker at the true apex — this window's solar noon (not getSun's next transit,
+  // which is tomorrow once it's past local noon → threw the marker to the far-right edge)
   let noonX: number | null = null
   let noonY = altToY(MAX_ALT)
-  if (sun.solarNoon && riseMs !== null && span > 0 && lat !== null && lon !== null) {
-    noonX = fracToX((sun.solarNoon.getTime() - riseMs) / span)
-    noonY = altToY(sunAltitude(lat, lon, sun.solarNoon))
+  if (solarNoonMs !== null && riseMs !== null && span > 0 && lat !== null && lon !== null) {
+    noonX = fracToX((solarNoonMs - riseMs) / span)
+    noonY = altToY(sunAltitude(lat, lon, new Date(solarNoonMs)))
   }
 
   return (
@@ -123,9 +128,13 @@ export function SkySunArc({ sun, timeFormat }: SkySunArcProps) {
         )}
         {/* noon marker */}
         {noonX !== null && <circle className="sky-arc-tick" cx={noonX} cy={noonY} r="2" />}
-        {/* the sun */}
-        <circle className="sky-arc-sun-glow" cx={sunX} cy={sunY} r="11" opacity={day ? 1 : 0.4} />
-        <circle className="sky-arc-sun" cx={sunX} cy={sunY} r="6.5" opacity={day ? 1 : 0.45} />
+        {/* the sun — only while above the horizon; at night it's hidden (no dim blob in a corner) */}
+        {day && (
+          <>
+            <circle className="sky-arc-sun-glow" cx={sunX} cy={sunY} r="11" />
+            <circle className="sky-arc-sun" cx={sunX} cy={sunY} r="6.5" />
+          </>
+        )}
         {/* endpoint dots */}
         <circle className="sky-arc-tick" cx="12" cy={HORIZON_Y} r="2.4" />
         <circle className="sky-arc-tick" cx={W - 12} cy={HORIZON_Y} r="2.4" />
@@ -137,7 +146,7 @@ export function SkySunArc({ sun, timeFormat }: SkySunArcProps) {
         </div>
         <div className="sky-arc-end sky-arc-end--mid">
           <div className="sky-arc-end-label">Noon</div>
-          <div className="sky-arc-end-time">{fmt(sun.solarNoon)}</div>
+          <div className="sky-arc-end-time">{fmt(solarNoonMs !== null ? new Date(solarNoonMs) : sun.solarNoon)}</div>
         </div>
         <div className="sky-arc-end sky-arc-end--right">
           <div className="sky-arc-end-label">Set</div>
