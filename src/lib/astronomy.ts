@@ -81,6 +81,22 @@ export function sunAltitude(lat: number, lon: number, date: Date): number {
   return Horizon(date, observer, equ.ra, equ.dec, 'normal').altitude
 }
 
+// Lightweight horizontal coordinates (altitude + azimuth, degrees) for the sun or
+// moon at an instant — just Observer→Equator→Horizon, cheap enough to sample the full
+// path and to call every frame. Azimuth is clockwise from north (N 0, E 90, S 180, W 270).
+export function sunAltAz(lat: number, lon: number, date: Date): { altitude: number; azimuth: number } {
+  const o = new Observer(lat, lon, 0)
+  const equ = Equator(SUN, date, o, true, true)
+  const h = Horizon(date, o, equ.ra, equ.dec, 'normal')
+  return { altitude: h.altitude, azimuth: h.azimuth }
+}
+export function moonAltAz(lat: number, lon: number, date: Date): { altitude: number; azimuth: number } {
+  const o = new Observer(lat, lon, 0)
+  const equ = Equator(MOON, date, o, true, true)
+  const h = Horizon(date, o, equ.ra, equ.dec, 'normal')
+  return { altitude: h.altitude, azimuth: h.azimuth }
+}
+
 // The daylight window to draw the sun-path arc over: rise on the left, set on the
 // right, always in order (rise < set) and bracketing `date`. getSun's rise/set are
 // the NEXT ones, so after solar noon the next rise is tomorrow while the next set is

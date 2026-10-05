@@ -8,7 +8,6 @@ import { SkyPlanets } from './SkyPlanets'
 import { SkyConstellations } from './SkyConstellations'
 import { SkyHeroMoon } from './SkyHeroMoon'
 import { SkyHeroSun } from './SkyHeroSun'
-import { SkyMoonArc } from './SkyMoonArc'
 import {
   formatSunTime,
   formatCountdown,
@@ -20,7 +19,6 @@ import './SkySection.css'
 export function SkySection() {
   const showSky = useSettings((s) => s.showSky)
   const timeFormat = useSettings((s) => s.timeFormat)
-  const accentMode = useSettings((s) => s.accentMode)
   const { lat, lon } = useActiveCoords()
   const sky = useSky(lat, lon)
   const [expanded, setExpanded] = useState(false)
@@ -86,11 +84,7 @@ export function SkySection() {
             ) : (
               <SkyHeroMoon moon={sky.moon} timeFormat={timeFormat} />
             )}
-            {accentMode === 'imagined' && !sky.isDay ? (
-              <SkyMoonArc moon={sky.moon} timeFormat={timeFormat} />
-            ) : (
-              <SkySun sun={sky.sun} isDay={sky.isDay} />
-            )}
+            <SkySun sun={sky.sun} isDay={sky.isDay} />
             {/* At night the hero moon already shows phase/illumination/rise/set,
                 so the Moon data block is redundant — show it only in daytime,
                 where the hero is the Sun and moon rise/set is still useful. */}

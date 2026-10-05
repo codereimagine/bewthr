@@ -1,7 +1,7 @@
 import { useSettings } from '../store/settings'
 import type { SunInfo } from '../lib/astronomy'
 import { formatSunTime, formatTimeRange } from '../lib/skyFormat'
-import { SkySunArc } from './SkySunArc'
+import { SkyPathPanorama } from './SkyPathPanorama'
 
 interface SkySunProps {
   sun: SunInfo
@@ -36,7 +36,7 @@ export function SkySun({ sun, isDay }: SkySunProps) {
     return (
       <div className="sky-group">
         {title}
-        <SkySunArc sun={sun} timeFormat={timeFormat} />
+        <SkyPathPanorama />
         <div className="sky-kv sky-kv--compact">
           <div className="sky-kv-row">
             <div className="sky-kv-label">Golden hour</div>

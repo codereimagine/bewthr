@@ -226,6 +226,8 @@
 .sky-arc { margin: 2px 0 10px; }
 .sky-arc svg { display: block; overflow: visible; }
 .sky-arc-horizon { stroke: color-mix(in srgb, var(--accent) 22%, transparent); stroke-width: 1; }
+/* V3 sky-path panorama canvas (Imagined) */
+.sky-path-canvas { display: block; width: 100%; height: 188px; border-radius: 10px; }
 .sky-arc-track { stroke: rgba(255, 190, 110, 0.2); stroke-width: 2; stroke-linecap: round; }
 /* thicker, glowing elapsed line */
 .sky-arc-progress {
@@ -252,12 +254,22 @@
   transform-box: fill-box;
   transform-origin: center;
 }
+/* resting body: dim disc parked on the horizon at the rise/set point when below horizon */
+.sky-arc-rest { opacity: 0.5; }
+/* the always-present track carries a faint breathing glow so the arc is never dead */
+.sky-arc-track { --track-glow: rgba(255, 190, 110, 0.5); }
+.sky-arc--moon .sky-arc-track { --track-glow: rgba(185, 208, 242, 0.5); }
 @media (prefers-reduced-motion: no-preference) {
   .sky-arc-sun-glow { animation: sky-breathe 3.2s ease-in-out infinite; }
   .sky-arc-moon-glow { animation: sky-breathe 4.4s ease-in-out infinite; }
   .sky-arc-sun { animation: sky-core 3.2s ease-in-out infinite; }
   .sky-arc-moon { animation: sky-core 4.4s ease-in-out infinite; }
   .sky-arc-progress { animation: sky-line 3.2s ease-in-out infinite; }
+  .sky-arc-track { animation: sky-track 4.5s ease-in-out infinite; }
+}
+@keyframes sky-track {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 2.5px var(--track-glow)); }
 }
 @keyframes sky-breathe {
   0%, 100% { opacity: 0.4; transform: scale(1); }
