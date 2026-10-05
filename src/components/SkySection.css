@@ -238,16 +238,19 @@
 .sky-dial-glow { opacity: 0.3; }
 
 /* dusk timeline (Imagined; replaces the twilight kv table) */
-.sky-dusk { padding: 4px 0 2px; }
-.sky-dusk-track { position: relative; height: 46px; margin: 16px 8px 0; }
+.sky-dusk { padding: 6px 0 2px; }
+.sky-dusk-track { position: relative; height: 60px; margin: 8px 10px 0; }
 .sky-dusk-bar {
-  position: absolute; left: 0; right: 0; top: 17px; height: 6px; border-radius: 4px;
+  position: absolute; left: 0; right: 0; top: 27px; height: 6px; border-radius: 4px;
   background: linear-gradient(90deg, #f0b46a 0%, #e08a5a 20%, #5b6bb0 54%, #2b366a 78%, #11183a 100%);
 }
-.sky-dusk-mk { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-.sky-dusk-time { font: 9px var(--mono); color: #e7eefb; white-space: nowrap; min-height: 11px; }
-.sky-dusk-tick { width: 2px; height: 19px; background: rgba(230, 238, 251, 0.72); }
-.sky-dusk-label { margin-top: 3px; font: 8px var(--mono); letter-spacing: 1px; color: rgba(142, 162, 191, 0.92); white-space: nowrap; }
+.sky-dusk-mk { position: absolute; top: 0; height: 56px; transform: translateX(-50%); pointer-events: none; }
+/* times sit in two tiers (zigzag by index) so near-adjacent moments never collide */
+.sky-dusk-time { position: absolute; left: 50%; top: 13px; transform: translateX(-50%); font: 9px var(--mono); color: #e7eefb; white-space: nowrap; }
+.sky-dusk-time--hi { top: 0; }
+.sky-dusk-tick { position: absolute; left: 50%; top: 24px; width: 2px; height: 12px; transform: translateX(-50%); background: rgba(230, 238, 251, 0.72); }
+.sky-dusk-label { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); font: 8px var(--mono); letter-spacing: 1px; color: rgba(142, 162, 191, 0.92); white-space: nowrap; }
+.sky-dusk-label--lo { top: 49px; }
 .sky-arc-track { stroke: rgba(255, 190, 110, 0.2); stroke-width: 2; stroke-linecap: round; }
 /* thicker, glowing elapsed line */
 .sky-arc-progress {

@@ -19,25 +19,26 @@ export function SkyDusk({ sun, timeFormat }: SkyDuskProps) {
     d ? Math.max(0, Math.min(100, ((d.getTime() - start.getTime()) / span) * 100)) : null
   const fmt = (d: Date | null) => formatSunTime(d, timeFormat)
 
-  const marks: { label: string; t: Date | null; time: boolean }[] = [
-    { label: 'Golden', t: sun.goldenHourStart, time: true },
-    { label: 'Blue', t: sun.blueHourStart, time: true },
-    { label: 'Civil', t: sun.civilTwilightEnd, time: false },
-    { label: 'Astro', t: sun.astroTwilightEnd, time: true },
+  const marks: { label: string; t: Date | null }[] = [
+    { label: 'Golden', t: sun.goldenHourStart },
+    { label: 'Blue', t: sun.blueHourStart },
+    { label: 'Civil', t: sun.civilTwilightEnd },
+    { label: 'Astro', t: sun.astroTwilightEnd },
   ]
 
   return (
     <div className="sky-dusk" role="img" aria-label={`Dusk: golden hour ${fmt(sun.goldenHourStart)}, blue hour ${fmt(sun.blueHourStart)}, civil twilight ${fmt(sun.civilTwilightEnd)}, astronomical twilight ${fmt(sun.astroTwilightEnd)}`}>
       <div className="sky-dusk-track">
         <div className="sky-dusk-bar" />
-        {marks.map((m) => {
+        {marks.map((m, i) => {
           const p = pos(m.t)
           if (p === null) return null
           return (
             <div key={m.label} className="sky-dusk-mk" style={{ left: `${p}%` }}>
-              {m.time && <span className="sky-dusk-time">{fmt(m.t)}</span>}
+              {/* zigzag the time into two tiers so near-adjacent moments never collide */}
+              <span className={`sky-dusk-time${i % 2 ? ' sky-dusk-time--hi' : ''}`}>{fmt(m.t)}</span>
               <span className="sky-dusk-tick" />
-              <span className="sky-dusk-label">{m.label}</span>
+              <span className={`sky-dusk-label${i % 2 ? '' : ' sky-dusk-label--lo'}`}>{m.label}</span>
             </div>
           )
         })}
