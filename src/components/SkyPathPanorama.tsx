@@ -103,23 +103,28 @@ export function SkyPathPanorama() {
       const reveal = reduce ? 1 : Math.min(1, (tMs - start) / REVEAL_MS)
       const breathe = reduce ? 0 : 0.5 + 0.5 * Math.sin(tMs / 1500)
 
-      // sky
-      const g = ctx.createLinearGradient(0, 0, 0, hY)
-      g.addColorStop(0, '#0a1230'); g.addColorStop(0.5, '#17233f')
-      g.addColorStop(0.86, '#4e3f3e'); g.addColorStop(1, '#875838')
-      ctx.fillStyle = g; ctx.fillRect(0, 0, cw, hY)
-      // stars
-      for (const [sx, sy, sr, sa] of stars) { ctx.globalAlpha = sa as number; ctx.fillStyle = '#bcd6ff'; ctx.beginPath(); ctx.arc((sx as number) * cw, (sy as number) * hY * 0.6, sr as number, 0, 7); ctx.fill() }
+      // transparent — blend into the (dark) card; only a faint horizon glow, no box
+      ctx.clearRect(0, 0, cw, ch)
+      const g = ctx.createLinearGradient(0, hY * 0.5, 0, hY)
+      g.addColorStop(0, 'rgba(255,170,90,0)'); g.addColorStop(1, 'rgba(255,158,78,0.1)')
+      ctx.fillStyle = g; ctx.fillRect(0, hY * 0.5, cw, hY - hY * 0.5)
+      // stars (subtle)
+      for (const [sx, sy, sr, sa] of stars) { ctx.globalAlpha = (sa as number) * 0.7; ctx.fillStyle = '#9fb6dd'; ctx.beginPath(); ctx.arc((sx as number) * cw, (sy as number) * hY * 0.6, sr as number, 0, 7); ctx.fill() }
       ctx.globalAlpha = 1
-      // ground + horizon
-      ctx.fillStyle = '#070a12'; ctx.fillRect(0, hY, cw, ch - hY)
-      ctx.strokeStyle = 'rgba(180,210,255,0.4)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, hY); ctx.lineTo(cw, hY); ctx.stroke()
+      // horizon line (no solid ground fill — the card shows through)
+      ctx.strokeStyle = 'rgba(160,190,235,0.3)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, hY); ctx.lineTo(cw, hY); ctx.stroke()
       // compass ticks (only those inside range)
-      ctx.fillStyle = 'rgba(180,210,255,0.7)'; ctx.font = '9px ui-monospace, monospace'; ctx.textAlign = 'center'
+      ctx.fillStyle = 'rgba(160,190,235,0.6)'; ctx.font = '9px ui-monospace, monospace'; ctx.textAlign = 'center'
       for (const [t, az] of [['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270]] as [string, number][]) {
         if (az < azMin || az > azMax) continue
         ctx.fillText(t, ax(az), hY + 12)
       }
+      // legend — which line is which
+      ctx.textAlign = 'left'; ctx.font = '9px ui-monospace, monospace'
+      ctx.fillStyle = '#f6dca8'; ctx.beginPath(); ctx.arc(9, 10, 3, 0, 7); ctx.fill()
+      ctx.fillStyle = 'rgba(235,218,180,0.92)'; ctx.fillText('SUN', 16, 13)
+      ctx.fillStyle = '#dfebff'; ctx.beginPath(); ctx.arc(52, 10, 3, 0, 7); ctx.fill()
+      ctx.fillStyle = 'rgba(210,225,255,0.92)'; ctx.fillText('MOON', 59, 13)
 
       for (const b of bodies) {
         const live = b.up(now)

@@ -28,7 +28,7 @@ export function SkySun({ sun, isDay }: SkySunProps) {
           <circle cx="-1.5" cy="-1.5" r="2.6" fill="#ffe6ad" />
         </svg>
       )}
-      Sun
+      {imagined ? 'Sky' : 'Sun'}
     </div>
   )
 
