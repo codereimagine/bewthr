@@ -1,6 +1,7 @@
 import type { ConstellationInfo } from '../lib/constellations'
 import { useSettings } from '../store/settings'
 import { SkyStarGlyph } from './SkyStarGlyph'
+import { SkyDial } from './SkyDial'
 
 interface SkyConstellationsProps {
   constellations: ConstellationInfo[]
@@ -30,7 +31,7 @@ export function SkyConstellations({ constellations }: SkyConstellationsProps) {
                 <div className="sky-row-name">{c.name}</div>
                 <div className="sky-row-sub">{STATE_LABEL[c.state]}</div>
               </div>
-              <div className="sky-row-dir">{c.direction}</div>
+              <SkyDial azimuth={c.azimuth} altitude={c.altitude} tone="sky" label={`${c.direction} · ${STATE_LABEL[c.state]}`} />
             </div>
           ) : (
             <div key={c.name} className="sky-row">

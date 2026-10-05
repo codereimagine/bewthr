@@ -134,7 +134,8 @@ export function SkyPathPanorama() {
         const P = b.pts.map((p) => ({ t: p.t, x: ax(p.az), y: ay(p.alt) }))
         // full path (faint, dashed)
         ctx.setLineDash([3, 5]); ctx.lineWidth = 1.5
-        ctx.strokeStyle = b.isMoon ? 'rgba(205,220,255,0.22)' : 'rgba(240,206,150,0.22)'
+        // distinct even when both are below the horizon: warm gold (sun) vs cool blue (moon)
+        ctx.strokeStyle = b.isMoon ? 'rgba(140,185,255,0.42)' : 'rgba(245,186,104,0.42)'
         ctx.beginPath(); P.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke()
         ctx.setLineDash([])
         if (isUp) {

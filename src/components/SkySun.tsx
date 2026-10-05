@@ -2,6 +2,7 @@ import { useSettings } from '../store/settings'
 import type { SunInfo } from '../lib/astronomy'
 import { formatSunTime, formatTimeRange } from '../lib/skyFormat'
 import { SkyPathPanorama } from './SkyPathPanorama'
+import { SkyDusk } from './SkyDusk'
 
 interface SkySunProps {
   sun: SunInfo
@@ -37,24 +38,7 @@ export function SkySun({ sun, isDay }: SkySunProps) {
       <div className="sky-group">
         {title}
         <SkyPathPanorama />
-        <div className="sky-kv sky-kv--compact">
-          <div className="sky-kv-row">
-            <div className="sky-kv-label">Golden hour</div>
-            <div className="sky-kv-value">{range(sun.goldenHourStart, sun.goldenHourEnd)}</div>
-          </div>
-          <div className="sky-kv-row">
-            <div className="sky-kv-label">Blue hour</div>
-            <div className="sky-kv-value">{range(sun.blueHourStart, sun.blueHourEnd)}</div>
-          </div>
-          <div className="sky-kv-row">
-            <div className="sky-kv-label">Civil twilight</div>
-            <div className="sky-kv-value">{fmt(sun.civilTwilightEnd)}</div>
-          </div>
-          <div className="sky-kv-row">
-            <div className="sky-kv-label">Astro twilight</div>
-            <div className="sky-kv-value">{fmt(sun.astroTwilightEnd)}</div>
-          </div>
-        </div>
+        <SkyDusk sun={sun} timeFormat={timeFormat} />
       </div>
     )
   }

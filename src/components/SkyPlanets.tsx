@@ -1,6 +1,7 @@
 import type { PlanetInfo } from '../lib/astronomy'
 import { useSettings } from '../store/settings'
 import { SkyStarGlyph } from './SkyStarGlyph'
+import { SkyDial } from './SkyDial'
 
 interface SkyPlanetsProps {
   planets: PlanetInfo[]
@@ -32,7 +33,7 @@ export function SkyPlanets({ planets }: SkyPlanetsProps) {
                 <div className="sky-row-name">{p.name}</div>
                 <div className="sky-row-sub">{BRIGHT_LABEL[p.brightness]} · {p.state}</div>
               </div>
-              <div className="sky-row-dir">{p.direction}</div>
+              <SkyDial azimuth={p.azimuth} altitude={p.altitude} tone="sun" label={`${p.direction} · ${p.state}`} />
             </div>
           ) : (
             <div key={p.name} className="sky-row">

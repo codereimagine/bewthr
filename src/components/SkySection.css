@@ -228,6 +228,26 @@
 .sky-arc-horizon { stroke: color-mix(in srgb, var(--accent) 22%, transparent); stroke-width: 1; }
 /* V3 sky-path panorama canvas (Imagined) */
 .sky-path-canvas { display: block; width: 100%; height: 188px; border-radius: 10px; }
+
+/* mini sky-position dial (Imagined planet/constellation rows) */
+.sky-dial { flex: 0 0 40px; width: 40px; height: 40px; }
+.sky-dial-ring { fill: none; stroke: rgba(143, 214, 255, 0.2); stroke-width: 1; }
+.sky-dial-ring--in { stroke: rgba(143, 214, 255, 0.12); }
+.sky-dial-spoke { stroke: rgba(143, 214, 255, 0.1); stroke-width: 1; }
+.sky-dial-n { fill: rgba(143, 214, 255, 0.5); font-size: 6px; font-family: var(--mono); }
+.sky-dial-glow { opacity: 0.3; }
+
+/* dusk timeline (Imagined; replaces the twilight kv table) */
+.sky-dusk { padding: 4px 0 2px; }
+.sky-dusk-track { position: relative; height: 46px; margin: 16px 8px 0; }
+.sky-dusk-bar {
+  position: absolute; left: 0; right: 0; top: 17px; height: 6px; border-radius: 4px;
+  background: linear-gradient(90deg, #f0b46a 0%, #e08a5a 20%, #5b6bb0 54%, #2b366a 78%, #11183a 100%);
+}
+.sky-dusk-mk { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.sky-dusk-time { font: 9px var(--mono); color: #e7eefb; white-space: nowrap; min-height: 11px; }
+.sky-dusk-tick { width: 2px; height: 19px; background: rgba(230, 238, 251, 0.72); }
+.sky-dusk-label { margin-top: 3px; font: 8px var(--mono); letter-spacing: 1px; color: rgba(142, 162, 191, 0.92); white-space: nowrap; }
 .sky-arc-track { stroke: rgba(255, 190, 110, 0.2); stroke-width: 2; stroke-linecap: round; }
 /* thicker, glowing elapsed line */
 .sky-arc-progress {
