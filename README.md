@@ -8,10 +8,17 @@
 
 *Two modes: **Imagined** — the full living sky · **Classic** — a clean, minimal instrument view. One tap to switch.*
 
+<sub><b>IMAGINED</b> — the full living sky</sub>
 <p>
-  <img src="screenshots/hero-night.png" width="30%" alt="bewthr — night sky, geolocated current conditions" />
-  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr — Sky Tonight: the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
-  <img src="screenshots/hero-day.png" width="30%" alt="bewthr — daytime living sky with real precipitation" />
+  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky, geolocated conditions" />
+  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Imagined — Sky Tonight: the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
+  <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky with real precipitation" />
+</p>
+
+<sub><b>CLASSIC</b> — a clean, minimal instrument view</sub>
+<p>
+  <img src="screenshots/classic-day.png" width="30%" alt="bewthr Classic — clean minimal instrument view, current conditions" />
+  <img src="screenshots/classic-sky.png" width="30%" alt="bewthr Classic — Sky Tonight data panel: sun, moon, planets and constellations" />
 </p>
 
 </div>
