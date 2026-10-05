@@ -4,7 +4,9 @@
 
 ### A living, astronomically-accurate weather app — private by design.
 
-**[Open bewthr →](https://codereimagine.github.io/bewthr/)**
+**▶ Live — [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)**
+
+*Two modes: **Imagined** — the full living sky · **Classic** — a clean, minimal instrument view. One tap to switch.*
 
 <p>
   <img src="screenshots/hero-night.png" width="30%" alt="bewthr — night sky, geolocated current conditions" />
