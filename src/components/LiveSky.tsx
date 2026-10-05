@@ -190,7 +190,13 @@ export function LiveSky({ current }: LiveSkyProps) {
         g.addColorStop(0, `rgba(255,225,170,${sunAlt > 0 ? 0.5 : 0.28})`); g.addColorStop(1, 'transparent')
         octx.globalCompositeOperation = 'screen'
         octx.fillStyle = g; octx.beginPath(); octx.arc(pp.x, pp.y, W * 1.1, 0, 7); octx.fill()
-        if (sunAlt > 0 && !(cloudy || rainy || snowy)) { octx.fillStyle = 'rgba(255,245,220,.95)'; octx.beginPath(); octx.arc(pp.x, pp.y, 26 * DPR, 0, 7); octx.fill() }
+        if (sunAlt > 0 && !(cloudy || rainy || snowy)) {
+          // soft-edged sun glow (not a hard opaque disc blob over the UI)
+          const sr = 30 * DPR
+          const sg = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, sr)
+          sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
+          octx.fillStyle = sg; octx.beginPath(); octx.arc(pp.x, pp.y, sr, 0, 7); octx.fill()
+        }
         octx.globalCompositeOperation = 'source-over'
       }
       if (fix && sunAlt < -8 && !rainy && !overcast) {
@@ -209,17 +215,28 @@ export function LiveSky({ current }: LiveSkyProps) {
       if (fix && fix.moonAlt > 0 && !rainy && !overcast) {
         const pp = project(fix.moonAz, fix.moonAlt, W, H)
         if (pp.vis) {
+          // The moon fades toward a faint PALE daytime disc as the sun climbs (a real
+          // daytime moon is washed out) and is the crisp dark-navy crescent only at night —
+          // no dark disc floating in a bright sky. Tracks its true az/alt like the sun.
+          const sa = fix.sunAlt
+          const moonVis = sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)
+          const night = sa < 0
+          const base = night ? '#1a2038' : '#b7c2db'
+          const lit = night ? '#eef2ff' : '#eef3fc'
+          const shadow = night ? '#1a2038' : '#aab6d2'
           const r = 24 * DPR
+          octx.globalAlpha = moonVis
           const g = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, r * 3.5)
-          g.addColorStop(0, 'rgba(220,230,255,.32)'); g.addColorStop(1, 'transparent')
+          g.addColorStop(0, `rgba(220,230,255,${night ? 0.32 : 0.12})`); g.addColorStop(1, 'transparent')
           octx.fillStyle = g; octx.beginPath(); octx.arc(pp.x, pp.y, r * 3.5, 0, 7); octx.fill()
-          octx.fillStyle = '#1a2038'; octx.beginPath(); octx.arc(pp.x, pp.y, r, 0, 7); octx.fill()
+          octx.fillStyle = base; octx.beginPath(); octx.arc(pp.x, pp.y, r, 0, 7); octx.fill()
           octx.save(); octx.beginPath(); octx.arc(pp.x, pp.y, r, 0, 7); octx.clip()
           const waxing = fix.moonPhase < 180
           const moff = (1 - 2 * fix.moonFrac) * r
-          octx.fillStyle = '#eef2ff'; octx.beginPath(); octx.rect(waxing ? pp.x : pp.x - r * 2, pp.y - r, r * 2, r * 2); octx.fill()
-          octx.fillStyle = fix.moonFrac < 0.5 ? '#1a2038' : '#eef2ff'; octx.beginPath(); octx.ellipse(pp.x, pp.y, Math.abs(moff), r, 0, 0, 7); octx.fill()
+          octx.fillStyle = lit; octx.beginPath(); octx.rect(waxing ? pp.x : pp.x - r * 2, pp.y - r, r * 2, r * 2); octx.fill()
+          octx.fillStyle = fix.moonFrac < 0.5 ? shadow : lit; octx.beginPath(); octx.ellipse(pp.x, pp.y, Math.abs(moff), r, 0, 0, 7); octx.fill()
           octx.restore()
+          octx.globalAlpha = 1
         }
       }
       if (clouds.length) {
