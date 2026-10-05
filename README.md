@@ -8,7 +8,7 @@
 
 <p>
   <img src="screenshots/hero-night.png" width="30%" alt="bewthr — night sky, geolocated current conditions" />
-  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr — Sky Tonight: real moon phase, sun-path arc, planets and constellations" />
+  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr — Sky Tonight: the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
   <img src="screenshots/hero-day.png" width="30%" alt="bewthr — daytime living sky with real precipitation" />
 </p>
 
@@ -21,7 +21,7 @@ bewthr shows the weather as a **living sky** rendered from real astronomy for yo
 ## What makes it bewthr
 
 - **A live, accurate sky.** The background is computed, not a stock image — sun altitude sets the colour of the sky, the moon renders at its real phase, stars appear only when it's truly dark, and precipitation reflects the current conditions for *your* coordinates.
-- **Sky Tonight.** A real astronomy panel: a sun-path arc (rise → solar noon → set, with the day so far lit up), the live moon phase with illumination, golden/blue-hour and twilight times, and the planets & constellations overhead right now — each at its true altitude and bearing.
+- **Sky Tonight — the signature.** A real astronomy instrument: the **sun and moon ride their exact rise → set paths** across a sky-dome, drawn from their true altitude *and* azimuth — so the two trails genuinely differ, just like the real sky. Plus a **dusk gradient timeline** for golden/blue-hour and twilight, the live moon phase with illumination, and the **planets & constellations overhead** — each with a mini **sky-position dial** showing its real direction and altitude.
 - **Private by design.** Your precise coordinates stay **on your device**; only coarse, rounded coordinates are ever sent to fetch weather. Location is a single on/off switch — turn it off and nothing is acquired or sent.
 - **Ad-free, tracker-free, open source.** No accounts, no analytics, no ads. Just weather.
 - **Accessible.** WCAG-audited contrast over the animated sky, dark / light / night / auto themes, reduced-motion support.
