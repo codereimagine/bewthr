@@ -21,6 +21,8 @@
   <img src="screenshots/classic-sky.png" width="30%" alt="bewthr Classic — Sky Tonight data panel: sun, moon, planets and constellations" />
 </p>
 
+<sub>By <b>Bert Peters</b> · the weather axis of <a href="https://github.com/codereimagine">codereimagine</a></sub>
+
 </div>
 
 ---
