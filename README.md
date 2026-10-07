@@ -2,7 +2,9 @@
 
 # bewthr
 
-### A living, astronomically-accurate weather app — private by design.
+### A living, astronomically-accurate weather app.
+
+*No accounts, no trackers, no ads — private by design.*
 
 **▶ Live — [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)**
 
