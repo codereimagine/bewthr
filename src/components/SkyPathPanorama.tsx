@@ -81,7 +81,7 @@ export function SkyPathPanorama() {
     let sd = 7; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280 }
     const stars = Array.from({ length: 64 }, () => [rnd(), rnd(), rnd() * 1.3, rnd() * 0.5 + 0.2])
 
-    let W = 0, H = 0, DPR = 1, hY = 0, mL = 18, mR = 18
+    let W = 0, H = 0, DPR = 1, hY = 0; const mL = 18, mR = 18
     const ax = (az: number) => mL + ((az - azMin) / (azMax - azMin)) * (W / DPR - mL - mR)
     const ay = (alt: number) => hY - (Math.max(0, alt) / altMax) * (hY - 26)
 
