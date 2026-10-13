@@ -89,7 +89,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const markerRef = useRef<HTMLDivElement>(null)
   const tempRef = useRef<HTMLSpanElement>(null)
   const posRef = useRef(0)
-  const hourRef = useRef(0)
+  const skyBucketRef = useRef(-1)
   const STEP_MS = 1400                        // playback: ms per hour (constant-speed glide)
 
   const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false) }
@@ -110,38 +110,43 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const acc = WX_ACCENT_LIGHT[h.b]
 
   const tempAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return Math.round(hours[a].temp + (hours[b].temp - hours[a].temp) * (p - a)) }
-  const jump = (n: number) => { stopPlay(); setPos(Math.max(0, Math.min(n, len - 1))) }
+  const skyMsAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return hours[a].time.getTime() + (hours[b].time.getTime() - hours[a].time.getTime()) * (p - a) }
+  // High-frequency visuals (marker + temp) go straight to the DOM every frame; the
+  // sky + discrete content re-render only when the 5-min sky bucket changes — so the
+  // weather background glides in lock-step with the slider, no render storm, and
+  // NOW/PLAY stay tappable.
+  const applyPos = (p: number) => {
+    posRef.current = p
+    if (markerRef.current) markerRef.current.style.left = `${((p + 0.5) / len * 100).toFixed(2)}%`
+    if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
+    const bucket = Math.round(skyMsAt(p) / 3e5)
+    if (bucket !== skyBucketRef.current) { skyBucketRef.current = bucket; setPos(p) }
+  }
+  const jump = (n: number) => { stopPlay(); const q = Math.max(0, Math.min(n, len - 1)); skyBucketRef.current = Math.round(skyMsAt(q) / 3e5); setPos(q) }
   const play = () => {
     if (rafRef.current != null) { stopPlay(); setPos(posRef.current); return }   // PAUSE — freeze where it is
     const start = pos >= len - 1 ? 0 : pos
     const t0 = performance.now()
-    hourRef.current = Math.round(start); posRef.current = start
+    posRef.current = start; skyBucketRef.current = Math.round(skyMsAt(start) / 3e5)
     setPlaying(true); setPos(start)
-    // Animate the marker + temp straight to the DOM each frame (no React render);
-    // re-render React only at each hour boundary. Keeps the main thread free so
-    // NOW/PLAY stay tappable; the sky repaints per hour (LiveSky animates itself).
     const tick = (now: number) => {
       const p = Math.min(len - 1, start + (now - t0) / STEP_MS)
-      posRef.current = p
-      if (markerRef.current) markerRef.current.style.left = `${((p + 0.5) / len * 100).toFixed(2)}%`
-      if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
-      const hr = Math.round(p)
-      if (hr !== hourRef.current) { hourRef.current = hr; setPos(p) }   // commit the float so React's marker matches the DOM (no yank)
+      applyPos(p)
       if (p >= len - 1) { stopPlay(); setPos(len - 1); return }
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
   }
 
-  // Drag-to-scrub across the band — snaps to the hour under your finger.
+  // Drag-to-scrub — continuous, so the sky glides with your finger.
   const posFromX = (clientX: number) => {
     const r = bandRef.current?.getBoundingClientRect()
     if (!r) return i
-    return Math.max(0, Math.min(len - 1, Math.round(((clientX - r.left) / r.width) * len - 0.5)))
+    return Math.max(0, Math.min(len - 1, ((clientX - r.left) / r.width) * len - 0.5))
   }
-  const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); setPos(posFromX(e.clientX)) }
-  const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) setPos(posFromX(e.clientX)) }
-  const onBandUp = (e: ReactPointerEvent<HTMLDivElement>) => { dragRef.current = false; setDragging(false); try { bandRef.current?.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
+  const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); applyPos(posFromX(e.clientX)) }
+  const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) applyPos(posFromX(e.clientX)) }
+  const onBandUp = (e: ReactPointerEvent<HTMLDivElement>) => { dragRef.current = false; setDragging(false); setPos(posRef.current); try { bandRef.current?.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
 
   // NEXT chip — the next real change of condition group
   let next = `No change through ${hours[hours.length - 1].label}`
@@ -153,7 +158,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const windowChips = hours.slice(lo, lo + 7)
 
   return (
-    <div className="cont" aria-label="Continuum — next 24 hours">
+    <div className="cont" aria-label="Continuum — next 24 hours" data-sky={skyMs}>
       <LiveSky current={h.current} time={skyTime} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
