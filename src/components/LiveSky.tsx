@@ -21,6 +21,8 @@ import './live-sky.css'
 
 interface LiveSkyProps {
   current: CurrentWeather | null | undefined
+  // Continuum (P2): the hour to render. Omitted/undefined = now — Imagined, unchanged.
+  time?: Date | null
 }
 
 interface Fix {
@@ -73,7 +75,7 @@ function project(az: number, alt: number, W: number, H: number) {
   return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: H - (alt / 90) * H, vis: Math.abs(d) < FOV / 2 }
 }
 
-export function LiveSky({ current }: LiveSkyProps) {
+export function LiveSky({ current, time }: LiveSkyProps) {
   const { lat, lon } = useActiveCoords()
   const skyRef = useRef<HTMLCanvasElement>(null)
   const rainRef = useRef<HTMLCanvasElement>(null)
@@ -82,15 +84,15 @@ export function LiveSky({ current }: LiveSkyProps) {
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
     if (lat == null || lon == null) { fixRef.current = null; return }
-    const now = new Date()
-    const sun = getSun(lat, lon, now)
-    const moon = getMoon(lat, lon, now)
+    const when = time ?? new Date()
+    const sun = getSun(lat, lon, when)
+    const moon = getMoon(lat, lon, when)
     fixRef.current = {
       sunAlt: sun.altitude, sunAz: sun.azimuth,
       moonAlt: moon.altitude, moonAz: moon.azimuth,
       moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
     }
-  }, [lat, lon])
+  }, [lat, lon, time])
 
   useEffect(() => {
     const sky = skyRef.current
@@ -297,7 +299,7 @@ export function LiveSky({ current }: LiveSkyProps) {
     raf = requestAnimationFrame(frame)
 
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [current, lat, lon])
+  }, [current, lat, lon, time])
 
   return (
     <>
