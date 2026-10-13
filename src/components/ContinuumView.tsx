@@ -86,6 +86,10 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const rafRef = useRef<number | null>(null)
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
+  const markerRef = useRef<HTMLDivElement>(null)
+  const tempRef = useRef<HTMLSpanElement>(null)
+  const posRef = useRef(0)
+  const hourRef = useRef(0)
   const STEP_MS = 1400                        // playback: ms per hour (constant-speed glide)
 
   const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false) }
@@ -105,16 +109,26 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const h = hours[i]
   const acc = WX_ACCENT_LIGHT[h.b]
 
+  const tempAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return Math.round(hours[a].temp + (hours[b].temp - hours[a].temp) * (p - a)) }
   const jump = (n: number) => { stopPlay(); setPos(Math.max(0, Math.min(n, len - 1))) }
   const play = () => {
-    if (rafRef.current != null) { stopPlay(); return }
+    if (rafRef.current != null) { stopPlay(); setPos(posRef.current); return }   // PAUSE — freeze where it is
     const start = pos >= len - 1 ? 0 : pos
     const t0 = performance.now()
+    hourRef.current = Math.round(start); posRef.current = start
     setPlaying(true); setPos(start)
+    // Animate the marker + temp straight to the DOM each frame (no React render);
+    // re-render React only at each hour boundary. Keeps the main thread free so
+    // NOW/PLAY stay tappable; the sky repaints per hour (LiveSky animates itself).
     const tick = (now: number) => {
-      const p = start + (now - t0) / STEP_MS
-      if (p >= len - 1) { setPos(len - 1); stopPlay(); return }
-      setPos(p); rafRef.current = requestAnimationFrame(tick)
+      const p = Math.min(len - 1, start + (now - t0) / STEP_MS)
+      posRef.current = p
+      if (markerRef.current) markerRef.current.style.left = `${((p + 0.5) / len * 100).toFixed(2)}%`
+      if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
+      const hr = Math.round(p)
+      if (hr !== hourRef.current) { hourRef.current = hr; setPos(p) }   // commit the float so React's marker matches the DOM (no yank)
+      if (p >= len - 1) { stopPlay(); setPos(len - 1); return }
+      rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
   }
@@ -168,7 +182,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
       <section className="cont-readout ease" aria-live="polite" style={{ textShadow: '0 2px 14px rgba(0,0,0,.45)' }}>
         <div className="cont-when mono ease" style={{ color: acc }}>{i === 0 ? `NOW · ${h.label}` : `${h.label} · +${i}H`}</div>
         <div className="cont-temp-row">
-          <span className="cont-temp ease" style={{ color: acc }}>{dispTemp}</span>
+          <span className="cont-temp ease" ref={tempRef} style={{ color: acc }}>{dispTemp}</span>
           <span className="cont-deg ease" style={{ color: acc }}>°</span>
         </div>
         <div className="cont-cond">{NAME[h.b]}</div>
@@ -196,7 +210,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
               className="cont-seg" style={{ background: WX_ACCENT_LIGHT[x.b], opacity: n === i ? 1 : 0.55 }}
               onClick={() => jump(n)} />
           ))}
-          <div className="cont-marker" aria-hidden="true"
+          <div className="cont-marker" aria-hidden="true" ref={markerRef}
             style={{ left: `${((f + 0.5) / len * 100).toFixed(2)}%`, transition: (playing || dragging) ? 'none' : 'left .4s ease' }} />
         </div>
         <div className="cont-chips">

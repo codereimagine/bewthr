@@ -65,12 +65,15 @@ function App() {
   return (
     <PwaUpdateProvider>
       {accentMode === 'continuum' && weather?.hourly ? (
-        <ContinuumView
-          hourly={weather.hourly}
-          placeName={[placeName, placeRegion].filter(Boolean).join(', ').toUpperCase() || 'SET A LOCATION'}
-          onOpenPlaces={() => setPlacesViewOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
+        <>
+          <ContinuumView
+            hourly={weather.hourly}
+            placeName={[placeName, placeRegion].filter(Boolean).join(', ').toUpperCase() || 'SET A LOCATION'}
+            onOpenPlaces={() => setPlacesViewOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+          <div className="cont-update-host"><UpdateBanner /></div>
+        </>
       ) : (
         <>
       {accentMode === 'imagined' && <LiveSky current={weather?.current} />}
