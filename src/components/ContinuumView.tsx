@@ -154,8 +154,15 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
     if (group(hours[j].b) !== group(h.b)) { next = `${GROUPNAME[group(hours[j].b)]} by ${hours[j].label}`; break }
   }
 
-  const lo = Math.max(0, Math.min(hours.length - 7, i - 3))
-  const windowChips = hours.slice(lo, lo + 7)
+  // Position the 7-box window so the selected box tracks the marker's spot on the
+  // band — left at the start of the day, right at the end — instead of the selection
+  // sitting pinned in the middle. Now the square and its time-box move together.
+  const WIN = Math.min(7, len)
+  // Put the selected box at the box-slot nearest the marker's fractional spot on the
+  // band, so the two line up as closely as discrete boxes allow.
+  const selIdxInWin = Math.max(0, Math.min(WIN - 1, Math.round(((i + 0.5) / len) * WIN - 0.5)))
+  const lo = Math.max(0, Math.min(len - WIN, i - selIdxInWin))
+  const windowChips = hours.slice(lo, lo + WIN)
 
   return (
     <div className="cont" aria-label="Continuum — next 24 hours" data-sky={skyMs}>
