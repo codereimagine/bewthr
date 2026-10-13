@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { LiveSky } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
@@ -28,6 +28,13 @@ const GROUPNAME: Record<string, string> = {
   clear: 'Clearing', partly: 'Clouds', cloud: 'Overcast', rain: 'Rain', storm: 'Thunderstorms', snow: 'Snow', fog: 'Fog',
 }
 const group = (b: WxBucket) => (b === 'clear-day' || b === 'clear-night') ? 'clear' : (b === 'cloud' || b === 'fog') ? 'cloud' : b
+
+// Sky swatch per condition — a compressed look at the real sky, painted along the
+// weather strip so the slider itself shows the day (dark night → blue day → dusk).
+const SKY: Record<WxBucket, string> = {
+  'clear-day': '#4f97e0', 'clear-night': '#1a2340', partly: '#7b94b6',
+  cloud: '#5c6676', fog: '#6a7280', rain: '#38465c', storm: '#2a2440', snow: '#c2cbd8',
+}
 
 interface Hour {
   label: string; temp: number; b: WxBucket; rain: number; wind: number; cloud: number
@@ -86,7 +93,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const rafRef = useRef<number | null>(null)
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
-  const markerRef = useRef<HTMLDivElement>(null)
+  const handleRef = useRef<HTMLDivElement>(null)
   const tempRef = useRef<HTMLSpanElement>(null)
   const posRef = useRef(0)
   const skyBucketRef = useRef(-1)
@@ -108,16 +115,18 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   if (!len || !hours[i]) return null
   const h = hours[i]
   const acc = WX_ACCENT_LIGHT[h.b]
+  // Hour n sits at xPct(n) along the strip; the handle rides the same scale.
+  const xPct = (p: number) => (len > 1 ? (p / (len - 1)) * 100 : 50)
 
   const tempAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return Math.round(hours[a].temp + (hours[b].temp - hours[a].temp) * (p - a)) }
   const skyMsAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return hours[a].time.getTime() + (hours[b].time.getTime() - hours[a].time.getTime()) * (p - a) }
-  // High-frequency visuals (marker + temp) go straight to the DOM every frame; the
+  // High-frequency visuals (handle + temp) go straight to the DOM every frame; the
   // sky + discrete content re-render only when the 5-min sky bucket changes — so the
   // weather background glides in lock-step with the slider, no render storm, and
   // NOW/PLAY stay tappable.
   const applyPos = (p: number) => {
     posRef.current = p
-    if (markerRef.current) markerRef.current.style.left = `${((p + 0.5) / len * 100).toFixed(2)}%`
+    if (handleRef.current) handleRef.current.style.left = `${xPct(p).toFixed(2)}%`
     if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
     const bucket = Math.round(skyMsAt(p) / 3e5)
     if (bucket !== skyBucketRef.current) { skyBucketRef.current = bucket; setPos(p) }
@@ -142,11 +151,17 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const posFromX = (clientX: number) => {
     const r = bandRef.current?.getBoundingClientRect()
     if (!r) return i
-    return Math.max(0, Math.min(len - 1, ((clientX - r.left) / r.width) * len - 0.5))
+    return Math.max(0, Math.min(len - 1, ((clientX - r.left) / r.width) * (len - 1)))
   }
   const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); applyPos(posFromX(e.clientX)) }
   const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) applyPos(posFromX(e.clientX)) }
   const onBandUp = (e: ReactPointerEvent<HTMLDivElement>) => { dragRef.current = false; setDragging(false); setPos(posRef.current); try { bandRef.current?.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
+  const onStripKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); jump(Math.min(i + 1, len - 1)) }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); jump(Math.max(i - 1, 0)) }
+    else if (e.key === 'Home') { e.preventDefault(); jump(0) }
+    else if (e.key === 'End') { e.preventDefault(); jump(len - 1) }
+  }
 
   // NEXT chip — the next real change of condition group
   let next = `No change through ${hours[hours.length - 1].label}`
@@ -154,18 +169,12 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
     if (group(hours[j].b) !== group(h.b)) { next = `${GROUPNAME[group(hours[j].b)]} by ${hours[j].label}`; break }
   }
 
-  // Position the 7-box window so the selected box tracks the marker's spot on the
-  // band — left at the start of the day, right at the end — instead of the selection
-  // sitting pinned in the middle. Now the square and its time-box move together.
-  const WIN = Math.min(7, len)
-  // Put the selected box at the box-slot nearest the marker's fractional spot on the
-  // band, so the two line up as closely as discrete boxes allow.
-  const selIdxInWin = Math.max(0, Math.min(WIN - 1, Math.round(((i + 0.5) / len) * WIN - 0.5)))
-  const lo = Math.max(0, Math.min(len - WIN, i - selIdxInWin))
-  const windowChips = hours.slice(lo, lo + WIN)
+  // The weather strip: the day's sky painted hour-by-hour into one gradient.
+  const stripGradient = `linear-gradient(90deg, ${hours.map((x, n) => `${SKY[x.b]} ${xPct(n).toFixed(1)}%`).join(', ')})`
+  const ticks = [...new Set([0, Math.round(len / 4), Math.round(len / 2), Math.round((3 * len) / 4), len - 1])].filter((n) => n >= 0 && n < len)
 
   return (
-    <div className="cont" aria-label="Continuum — next 24 hours" data-sky={skyMs}>
+    <div className="cont" aria-label="Continuum — next 24 hours">
       <LiveSky current={h.current} time={skyTime} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
@@ -215,30 +224,19 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
           <span className="lbl">// NEXT 24 HOURS</span>
           <span className="lbl">{hours[0].label} → {hours[hours.length - 1].label}</span>
         </div>
-        <div className="cont-band" ref={bandRef}
-          onPointerDown={onBandDown} onPointerMove={onBandMove} onPointerUp={onBandUp} onPointerCancel={onBandUp}>
-          {hours.map((x, n) => (
-            <button key={n} type="button" aria-label={`${x.label}, ${NAME[x.b]}`}
-              className="cont-seg" style={{ background: WX_ACCENT_LIGHT[x.b], opacity: n === i ? 1 : 0.55 }}
-              onClick={() => jump(n)} />
-          ))}
-          <div className="cont-marker" aria-hidden="true" ref={markerRef}
-            style={{ left: `${((f + 0.5) / len * 100).toFixed(2)}%`, transition: (playing || dragging) ? 'none' : 'left .4s ease' }} />
+        <div className="cont-strip" ref={bandRef} style={{ background: stripGradient }}
+          onPointerDown={onBandDown} onPointerMove={onBandMove} onPointerUp={onBandUp} onPointerCancel={onBandUp}
+          role="slider" tabIndex={0} aria-label="Scrub the next 24 hours"
+          aria-valuemin={0} aria-valuemax={len - 1} aria-valuenow={i}
+          aria-valuetext={`${i === 0 ? 'now' : h.label}, ${NAME[h.b]}, ${dispTemp} degrees`}
+          onKeyDown={onStripKey}>
+          <div className="cont-strip-handle" aria-hidden="true" ref={handleRef}
+            style={{ left: `${xPct(f).toFixed(2)}%`, transition: (playing || dragging) ? 'none' : 'left .35s ease' }} />
         </div>
-        <div className="cont-chips">
-          {windowChips.map((x, k) => {
-            const n = lo + k, sel = n === i, ca = WX_ACCENT_LIGHT[x.b]
-            return (
-              <button key={n} type="button" aria-label={`${x.label}, ${x.temp} degrees, ${NAME[x.b]}`}
-                className={`cont-chip${sel ? ' cont-chip--sel' : ''}`}
-                style={sel ? { borderColor: ca, background: 'rgba(255,255,255,.12)' } : undefined}
-                onClick={() => jump(n)}>
-                <span className="mono cont-chip-time" style={{ color: sel ? '#f5f7fb' : '#aab3c7' }}>{n === 0 ? 'NOW' : x.label.replace(' ', '')}</span>
-                <span className="cont-chip-dot" style={{ background: ca }} />
-                <span className="cont-chip-temp" style={{ color: ca }}>{x.temp}°</span>
-              </button>
-            )
-          })}
+        <div className="cont-strip-ticks mono" aria-hidden="true">
+          {ticks.map((n, k) => (
+            <span key={n} style={{ left: `${xPct(n).toFixed(2)}%`, transform: k === 0 ? 'translateX(0)' : k === ticks.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)' }}>{n === 0 ? 'NOW' : hours[n].label}</span>
+          ))}
         </div>
         <div className="cont-controls">
           <button type="button" className="cont-play mono" style={{ background: acc }}
