@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { LiveSky } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
@@ -79,27 +79,55 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const locate = () => { if (!geoEnabled) setGeoEnabled(true); else requestLocation() }
 
   const hours = useMemo(() => buildHours(hourly), [hourly])
-  const [idx, setIdx] = useState(0)
+  const len = hours.length
+  const [pos, setPos] = useState(0)          // continuous 0..len-1 — smooth marker/temp/sky
   const [playing, setPlaying] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const i = Math.min(idx, hours.length - 1)
+  const [dragging, setDragging] = useState(false)
+  const rafRef = useRef<number | null>(null)
+  const dragRef = useRef(false)
+  const bandRef = useRef<HTMLDivElement>(null)
+  const STEP_MS = 1400                        // playback: ms per hour (constant-speed glide)
+
+  const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false) }
+  useEffect(() => stopPlay, [])
+
+  // Interpolate between hours so Play glides instead of stepping. Discrete content
+  // (condition, cards, chips) tracks the rounded hour; the marker, temp and sky are continuous.
+  const i = len ? Math.max(0, Math.min(Math.round(pos), len - 1)) : 0
+  const f = len ? Math.max(0, Math.min(pos, len - 1)) : 0
+  const flo = Math.floor(f), fhi = Math.min(Math.max(len - 1, 0), flo + 1), frac = f - flo
+  const dispTemp = len ? Math.round(hours[flo].temp + (hours[fhi].temp - hours[flo].temp) * frac) : 0
+  // Sky time interpolated, quantised to 5 min so LiveSky repaints only as the sun actually moves (not every frame).
+  const skyMs = len ? Math.round((hours[flo].time.getTime() + (hours[fhi].time.getTime() - hours[flo].time.getTime()) * frac) / 3e5) * 3e5 : 0
+  const skyTime = useMemo(() => new Date(skyMs), [skyMs])
+
+  if (!len || !hours[i]) return null
   const h = hours[i]
-
-  const stop = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null } setPlaying(false) }
-  useEffect(() => stop, [])
-
-  if (!h) return null
   const acc = WX_ACCENT_LIGHT[h.b]
 
-  const jump = (n: number) => { stop(); setIdx(n) }
+  const jump = (n: number) => { stopPlay(); setPos(Math.max(0, Math.min(n, len - 1))) }
   const play = () => {
-    if (timerRef.current) { stop(); return }
-    setIdx((v) => (v >= hours.length - 1 ? 0 : v))
-    setPlaying(true)
-    timerRef.current = setInterval(() => {
-      setIdx((v) => { if (v >= hours.length - 1) { stop(); return 0 } return v + 1 })
-    }, 1850)
+    if (rafRef.current != null) { stopPlay(); return }
+    const start = pos >= len - 1 ? 0 : pos
+    const t0 = performance.now()
+    setPlaying(true); setPos(start)
+    const tick = (now: number) => {
+      const p = start + (now - t0) / STEP_MS
+      if (p >= len - 1) { setPos(len - 1); stopPlay(); return }
+      setPos(p); rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
   }
+
+  // Drag-to-scrub across the band — snaps to the hour under your finger.
+  const posFromX = (clientX: number) => {
+    const r = bandRef.current?.getBoundingClientRect()
+    if (!r) return i
+    return Math.max(0, Math.min(len - 1, Math.round(((clientX - r.left) / r.width) * len - 0.5)))
+  }
+  const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); setPos(posFromX(e.clientX)) }
+  const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) setPos(posFromX(e.clientX)) }
+  const onBandUp = (e: ReactPointerEvent<HTMLDivElement>) => { dragRef.current = false; setDragging(false); try { bandRef.current?.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
 
   // NEXT chip — the next real change of condition group
   let next = `No change through ${hours[hours.length - 1].label}`
@@ -112,7 +140,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
 
   return (
     <div className="cont" aria-label="Continuum — next 24 hours">
-      <LiveSky current={h.current} time={h.time} />
+      <LiveSky current={h.current} time={skyTime} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
 
@@ -140,7 +168,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
       <section className="cont-readout ease" aria-live="polite" style={{ textShadow: '0 2px 14px rgba(0,0,0,.45)' }}>
         <div className="cont-when mono ease" style={{ color: acc }}>{i === 0 ? `NOW · ${h.label}` : `${h.label} · +${i}H`}</div>
         <div className="cont-temp-row">
-          <span className="cont-temp ease" style={{ color: acc }}>{h.temp}</span>
+          <span className="cont-temp ease" style={{ color: acc }}>{dispTemp}</span>
           <span className="cont-deg ease" style={{ color: acc }}>°</span>
         </div>
         <div className="cont-cond">{NAME[h.b]}</div>
@@ -161,13 +189,15 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
           <span className="lbl">// NEXT 24 HOURS</span>
           <span className="lbl">{hours[0].label} → {hours[hours.length - 1].label}</span>
         </div>
-        <div className="cont-band">
+        <div className="cont-band" ref={bandRef}
+          onPointerDown={onBandDown} onPointerMove={onBandMove} onPointerUp={onBandUp} onPointerCancel={onBandUp}>
           {hours.map((x, n) => (
             <button key={n} type="button" aria-label={`${x.label}, ${NAME[x.b]}`}
               className="cont-seg" style={{ background: WX_ACCENT_LIGHT[x.b], opacity: n === i ? 1 : 0.55 }}
               onClick={() => jump(n)} />
           ))}
-          <div className="cont-marker ease" aria-hidden="true" style={{ left: `${((i + 0.5) / hours.length * 100).toFixed(2)}%` }} />
+          <div className="cont-marker" aria-hidden="true"
+            style={{ left: `${((f + 0.5) / len * 100).toFixed(2)}%`, transition: (playing || dragging) ? 'none' : 'left .4s ease' }} />
         </div>
         <div className="cont-chips">
           {windowChips.map((x, k) => {
