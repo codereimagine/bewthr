@@ -23,6 +23,7 @@ const THEMES: { value: Theme; label: string; glyph: string }[] = [
 
 const ACCENT_MODES: { value: AccentMode; label: string; glyph: string }[] = [
   { value: 'imagined', label: 'Imagined', glyph: '✨' },
+  { value: 'continuum', label: 'Continuum', glyph: '🎞️' },
   { value: 'classic', label: 'Classic', glyph: '🟠' },
 ]
 
@@ -229,7 +230,7 @@ export function Settings() {
         />
         <div className="settings-note">
           Auto follows OS preference. Night is a deeper palette for actual night use.
-          Imagined tints the accent to the sky; Classic keeps the original orange.
+          Imagined tints the accent to the sky; Continuum scrubs the next 24 hours; Classic keeps the original orange.
         </div>
       </div>
 
