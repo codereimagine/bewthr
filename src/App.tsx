@@ -69,6 +69,7 @@ function App() {
           <ContinuumView
             hourly={weather.hourly}
             placeName={[placeName, placeRegion].filter(Boolean).join(', ').toUpperCase() || 'SET A LOCATION'}
+            alerts={alerts}
             onOpenPlaces={() => setPlacesViewOpen(true)}
             onOpenSettings={() => setSettingsOpen(true)}
           />

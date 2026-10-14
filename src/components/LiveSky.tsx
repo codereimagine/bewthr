@@ -112,7 +112,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     if (starKey !== lastStarKeyRef.current) {
       lastStarKeyRef.current = starKey
       starsRef.current = alive
-        ? BRIGHT_STARS.reduce<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>((acc, s) => {
+        ? BRIGHT_STARS.slice(0, 650).reduce<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>((acc, s) => {
             const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
             if (altitude > 0) acc.push({ alt: altitude, az: azimuth, ra: s.ra, bf: Math.max(0, Math.min(1, (4.7 - s.mag) / 6.16)), tint: s.tint })
             return acc
