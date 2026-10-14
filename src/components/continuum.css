@@ -22,11 +22,6 @@
 .cont--banner,
 .cont:has(~ .cont-update-host .update-banner) { padding-top: 132px; }
 
-/* Idle ambience — when not playing, the sky slowly breathes/zooms behind the static
-   UI, giving life + parallax depth. Held still during Play so scrubbing reads clean. */
-.cont .live-sky--static { animation: cont-breathe 42s ease-in-out infinite; }
-.cont--playing .live-sky--static { animation: none; }
-@keyframes cont-breathe { 0%, 100% { transform: scale(1.02); } 50% { transform: scale(1.09); } }
 .cont .mono { font-family: var(--mono, 'JetBrains Mono', monospace); }
 .cont .lbl { font-family: var(--mono, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.18em; color: #aab3c7; }
 .cont .glass { border-radius: 12px; background: rgba(4, 6, 16, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); }
@@ -60,10 +55,13 @@
 .cont-feel { font-size: 16px; color: #dfe5f2; max-width: 300px; line-height: 1.4; }
 .cont-next { margin-top: 14px; display: inline-flex; align-self: flex-start; gap: 8px; padding: 8px 12px; font-size: 14px; align-items: center; }
 
-/* cards */
-.cont-cards { margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.cont-card { padding: 12px; }
-.cont-cardv { font-size: 22px; margin-top: 4px; }
+/* metrics — inline HUD (no boxes): label + value with a thin accent gauge beneath */
+.cont-metrics { margin-top: 22px; display: flex; gap: 24px; }
+.cont-metric { flex: 1 1 0; min-width: 0; }
+.cont-metric-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.cont-metric-v { font-size: 20px; font-weight: 500; white-space: nowrap; }
+.cont-metric-bar { margin-top: 8px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.cont-metric-bar span { display: block; height: 100%; border-radius: 2px; transition: width 0.5s ease, background 1.4s ease; }
 .cont-unit { font-size: 13px; color: #aab3c7; }
 
 .cont-grow { flex-grow: 1; }
@@ -94,5 +92,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cont .ease, .cont-strip-handle { transition: none; }
-  .cont .live-sky--static { animation: none; }
 }

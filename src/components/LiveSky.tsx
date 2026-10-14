@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon, starAltAz } from '../lib/astronomy'
+import { BRIGHT_STARS } from '../lib/brightStars'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
 import './live-sky.css'
@@ -39,16 +40,9 @@ interface Fix {
 
 const FACE = 180 // face south; sun/moon transit the southern sky (N hemisphere)
 const FOV = 170
-// Star field in equatorial coords (RA hours, Dec deg) — projected through the xengine
-// (starAltAz) so the Continuum sky rotates with the real sky as the hour is scrubbed.
-// mag is a drawn brightness/size tier, not a catalogue value.
-const STAR_CATALOG: { ra: number; dec: number; mag: number; tint: string }[] = Array.from({ length: 900 }, (_, i) => ({
-  ra: ((i * 9301 + 49297) % 233280) / 233280 * 24,
-  dec: ((i * 4523 + 1013) % 233280) / 233280 * 150 - 75,
-  mag: i % 12 === 0 ? 0.7 : i % 4 === 0 ? 1.8 : 3.0,
-  // subtle real-star colours: warm gold, blue-white, plain white
-  tint: i % 9 === 0 ? '255,222,190' : i % 4 === 1 ? '196,214,255' : '240,246,255',
-}))
+// The Continuum star field is the REAL Yale Bright Star Catalogue (src/lib/brightStars),
+// projected to local alt/az through the xengine — so actual constellations appear in
+// their true positions and rotate with the real sky as the hour is scrubbed.
 
 // Parse a colour to [r,g,b]. Handles both `#rrggbb` AND `rgb(r,g,b)` so a colour
 // that was already produced by mix() can be safely mixed again (the rain path
@@ -94,7 +88,8 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
-  const starsRef = useRef<{ alt: number; az: number; mag: number; ra: number; tint: string }[]>([])
+  const starsRef = useRef<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>([])
+  const lastStarKeyRef = useRef('')   // throttle star recompute to ~10-min steps
 
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
@@ -107,16 +102,21 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
       moonAlt: moon.altitude, moonAz: moon.azimuth,
       moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
     }
-    // Continuum: project the star catalogue to alt/az through the xengine at this hour,
-    // keeping only what's above the horizon. Recomputed as the scrubbed hour changes, so
-    // the field rotates with the real sky. (Skipped entirely in Imagined/Classic.)
-    starsRef.current = alive
-      ? STAR_CATALOG.reduce<{ alt: number; az: number; mag: number; ra: number; tint: string }[]>((acc, s) => {
-          const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
-          if (altitude > 0) acc.push({ alt: altitude, az: azimuth, mag: s.mag, ra: s.ra, tint: s.tint })
-          return acc
-        }, [])
-      : []
+    // Continuum: project the real bright-star catalogue (BSC via the xengine's starAltAz →
+    // Horizon) to local alt/az at this hour, keeping what's above the horizon. bf is a 0..1
+    // brightness factor from real magnitude. Throttled to ~10-min steps so Play doesn't
+    // recompute ~1100 positions every bucket. (Skipped in Imagined/Classic.)
+    const starKey = alive ? `${Math.round(when.getTime() / 6e5)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
+    if (starKey !== lastStarKeyRef.current) {
+      lastStarKeyRef.current = starKey
+      starsRef.current = alive
+        ? BRIGHT_STARS.reduce<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>((acc, s) => {
+            const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
+            if (altitude > 0) acc.push({ alt: altitude, az: azimuth, ra: s.ra, bf: Math.max(0, Math.min(1, (4.7 - s.mag) / 6.16)), tint: s.tint })
+            return acc
+          }, [])
+        : []
+    }
   }, [lat, lon, time, alive])
 
   // Continuum 3D: gentle parallax from device tilt. iOS needs a gesture to grant
@@ -353,14 +353,14 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           for (const st of starsRef.current) {
             const pp = project(st.az, st.alt, W, H)
             if (!pp.vis) continue
-            const depth = st.mag < 1.5 ? 1 : st.mag < 2.5 ? 0.5 : 0.22   // wide near/far spread = depth
+            const bf = st.bf                              // 0..1 brightness (real magnitude)
+            const depth = 0.2 + bf * 0.8                  // brighter = nearer = more parallax
             const x = pp.x + ax * depth * 36 * DPR
             const y = pp.y + ay * depth * 36 * DPR
-            const bright = st.mag < 1.5
-            const tw = 0.62 + 0.38 * Math.sin(t * (1 + st.mag * 0.4) + st.ra * 3)
-            const a = (bright ? 1 : st.mag < 2.5 ? 0.8 : 0.56) * dim * tw
-            const s = (bright ? 2.8 : st.mag < 2.5 ? 1.9 : 1.2) * DPR
-            if (st.mag < 2.5) {   // soft glow halo on the nearer/brighter stars — they pop forward
+            const tw = 0.62 + 0.38 * Math.sin(t * (1.1 + (1 - bf)) + st.ra * 3)
+            const a = (0.4 + bf * 0.6) * dim * tw
+            const s = (1 + bf * 2.2) * DPR
+            if (bf > 0.3) {   // soft glow halo on the brighter stars — they pop forward
               const gr = ctx.createRadialGradient(x, y, 0, x, y, s * 3.6)
               gr.addColorStop(0, `rgba(${st.tint},${a * 0.5})`)
               gr.addColorStop(1, 'transparent')
@@ -369,7 +369,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
             ctx.globalAlpha = a
             ctx.fillStyle = `rgb(${st.tint})`
             ctx.fillRect(x - s / 2, y - s / 2, s, s)
-            if (bright) {   // diffraction spikes — the sparkle that makes them pop
+            if (bf > 0.6) {   // diffraction spikes on the brightest — the sparkle
               const spike = s * (2.4 + 2.4 * tw)
               ctx.globalAlpha = a * 0.55
               ctx.strokeStyle = `rgb(${st.tint})`

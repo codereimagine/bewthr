@@ -224,10 +224,16 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
         <div className="glass cont-next"><span className="lbl">NEXT</span><span>{next}</span></div>
       </section>
 
-      <div className="cont-cards">
-        <div className="glass cont-card"><div className="lbl">RAIN</div><div className="cont-cardv">{h.rain}<span className="cont-unit">%</span></div></div>
-        <div className="glass cont-card"><div className="lbl">WIND</div><div className="cont-cardv">{h.wind}<span className="cont-unit"> mph</span></div></div>
-        <div className="glass cont-card"><div className="lbl">CLOUD</div><div className="cont-cardv">{h.cloud}<span className="cont-unit">%</span></div></div>
+      <div className="cont-metrics">
+        {([['RAIN', h.rain, '%', h.rain], ['WIND', h.wind, ' mph', Math.min(100, h.wind * 4)], ['CLOUD', h.cloud, '%', h.cloud]] as const).map(([label, val, unit, pct]) => (
+          <div className="cont-metric" key={label}>
+            <div className="cont-metric-head">
+              <span className="lbl">{label}</span>
+              <span className="cont-metric-v ease">{val}<span className="cont-unit">{unit}</span></span>
+            </div>
+            <div className="cont-metric-bar"><span className="ease" style={{ width: `${Math.max(2, Math.min(100, pct))}%`, background: acc }} /></div>
+          </div>
+        ))}
       </div>
 
       <div className="cont-grow" />
