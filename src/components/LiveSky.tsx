@@ -42,10 +42,12 @@ const FOV = 170
 // Star field in equatorial coords (RA hours, Dec deg) — projected through the xengine
 // (starAltAz) so the Continuum sky rotates with the real sky as the hour is scrubbed.
 // mag is a drawn brightness/size tier, not a catalogue value.
-const STAR_CATALOG: { ra: number; dec: number; mag: number }[] = Array.from({ length: 900 }, (_, i) => ({
+const STAR_CATALOG: { ra: number; dec: number; mag: number; tint: string }[] = Array.from({ length: 900 }, (_, i) => ({
   ra: ((i * 9301 + 49297) % 233280) / 233280 * 24,
   dec: ((i * 4523 + 1013) % 233280) / 233280 * 150 - 75,
   mag: i % 12 === 0 ? 0.7 : i % 4 === 0 ? 1.8 : 3.0,
+  // subtle real-star colours: warm gold, blue-white, plain white
+  tint: i % 9 === 0 ? '255,222,190' : i % 4 === 1 ? '196,214,255' : '240,246,255',
 }))
 
 // Parse a colour to [r,g,b]. Handles both `#rrggbb` AND `rgb(r,g,b)` so a colour
@@ -92,7 +94,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
-  const starsRef = useRef<{ alt: number; az: number; mag: number; ra: number }[]>([])
+  const starsRef = useRef<{ alt: number; az: number; mag: number; ra: number; tint: string }[]>([])
 
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
@@ -109,9 +111,9 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     // keeping only what's above the horizon. Recomputed as the scrubbed hour changes, so
     // the field rotates with the real sky. (Skipped entirely in Imagined/Classic.)
     starsRef.current = alive
-      ? STAR_CATALOG.reduce<{ alt: number; az: number; mag: number; ra: number }[]>((acc, s) => {
+      ? STAR_CATALOG.reduce<{ alt: number; az: number; mag: number; ra: number; tint: string }[]>((acc, s) => {
           const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
-          if (altitude > 0) acc.push({ alt: altitude, az: azimuth, mag: s.mag, ra: s.ra })
+          if (altitude > 0) acc.push({ alt: altitude, az: azimuth, mag: s.mag, ra: s.ra, tint: s.tint })
           return acc
         }, [])
       : []
@@ -360,13 +362,23 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
             const s = (bright ? 2.8 : st.mag < 2.5 ? 1.9 : 1.2) * DPR
             if (st.mag < 2.5) {   // soft glow halo on the nearer/brighter stars — they pop forward
               const gr = ctx.createRadialGradient(x, y, 0, x, y, s * 3.6)
-              gr.addColorStop(0, `rgba(${bright ? '255,255,255' : '208,222,255'},${a * 0.5})`)
+              gr.addColorStop(0, `rgba(${st.tint},${a * 0.5})`)
               gr.addColorStop(1, 'transparent')
               ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, s * 3.6, 0, 7); ctx.fill()
             }
             ctx.globalAlpha = a
-            ctx.fillStyle = bright ? '#ffffff' : '#eaf0ff'
-            ctx.fillRect(x, y, s, s)
+            ctx.fillStyle = `rgb(${st.tint})`
+            ctx.fillRect(x - s / 2, y - s / 2, s, s)
+            if (bright) {   // diffraction spikes — the sparkle that makes them pop
+              const spike = s * (2.4 + 2.4 * tw)
+              ctx.globalAlpha = a * 0.55
+              ctx.strokeStyle = `rgb(${st.tint})`
+              ctx.lineWidth = Math.max(0.6, 0.5 * DPR)
+              ctx.beginPath()
+              ctx.moveTo(x - spike, y); ctx.lineTo(x + spike, y)
+              ctx.moveTo(x, y - spike); ctx.lineTo(x, y + spike)
+              ctx.stroke()
+            }
           }
           ctx.globalAlpha = 1
         }
