@@ -10,7 +10,7 @@ export type TimeFormat = '12' | '24'
 export type UnitSystem = 'imperial' | 'metric'
 export type AnimationMode = 'off' | 'reduced' | 'on'
 export type LightningMode = 'off' | 'on'
-export type AccentMode = 'imagined' | 'classic'
+export type AccentMode = 'imagined' | 'continuum' | 'classic'
 
 interface SettingsState {
   theme: Theme
@@ -63,7 +63,7 @@ const VALID_TIME_FORMATS: readonly TimeFormat[] = ['12', '24']
 const VALID_UNIT_SYSTEMS: readonly UnitSystem[] = ['imperial', 'metric']
 const VALID_ANIMATIONS: readonly AnimationMode[] = ['off', 'reduced', 'on']
 const VALID_LIGHTNING: readonly LightningMode[] = ['off', 'on']
-const VALID_ACCENT_MODES: readonly AccentMode[] = ['imagined', 'classic']
+const VALID_ACCENT_MODES: readonly AccentMode[] = ['imagined', 'continuum', 'classic']
 const VALID_LOCATION_PRECISION: readonly LocationPrecision[] = ['exact', 'surrounding', 'general']
 const REFRESH_MIN = 0
 const REFRESH_MAX = 1440

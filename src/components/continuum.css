@@ -1,0 +1,95 @@
+/* CONTINUUM — full-bleed scrubbable 24h view. Built to the approved mockup
+   (2026-10-12). Sky is the real LiveSky canvas behind; this overlay is the
+   readout + scrubber. Smooth 1.4s blends on colour/position; reduced-motion steps. */
+
+.cont {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 100dvh;            /* visible viewport (excludes the iOS Safari toolbar) so the controls aren't under it */
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  color: #f5f7fb;
+  font-family: var(--display, 'Space Grotesk', system-ui, sans-serif);
+}
+.cont .ease { transition: background-color 1.4s ease, color 1.4s ease, left 1.4s ease, opacity 1.4s ease; }
+
+/* drop the content below the floating update banner when it's shown (no overlap).
+   Both a React class AND a DOM-driven :has() rule, so the push-down applies the
+   instant the banner mounts, independent of React timing. */
+.cont--banner,
+.cont:has(~ .cont-update-host .update-banner) { padding-top: 132px; }
+
+.cont .mono { font-family: var(--mono, 'JetBrains Mono', monospace); }
+.cont .lbl { font-family: var(--mono, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.18em; color: #aab3c7; }
+.cont .glass { border-radius: 12px; background: rgba(4, 6, 16, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); }
+
+/* header */
+.cont-header { display: flex; align-items: center; justify-content: space-between; }
+.cont-brand { display: flex; align-items: center; gap: 10px; }
+.cont-brand-mark { width: 34px; height: 34px; border-radius: 9px; background: #ffb866; color: #1a1006; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+.cont-brand-text { font-size: 22px; font-weight: 600; }
+.cont-brand-text span { color: #ffb866; }
+.cont-header-right { display: flex; align-items: center; gap: 10px; }
+.cont-ibtn { width: 34px; height: 34px; border-radius: 9px; background: rgba(4,6,16,.45); border: 1px solid rgba(255,255,255,.14); color: #dfe5f2; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.cont-ibtn:disabled { opacity: 0.5; }
+.cont-place-row { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+.cont-place { font-size: 12px; letter-spacing: 0.22em; color: #dfe5f2; text-shadow: 0 1px 6px rgba(0,0,0,.6); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* scrims for legibility over any sky */
+.cont-scrim { position: fixed; left: 0; right: 0; z-index: 1; pointer-events: none; }
+/* content sits ABOVE the scrims (they darken the sky for legibility, not the UI) */
+.cont > header, .cont > .cont-place-row, .cont > .cont-readout, .cont > .cont-cards, .cont > .cont-grow, .cont > .cont-scrubber { position: relative; z-index: 2; }
+.cont-scrim--top { top: 0; height: 300px; background: linear-gradient(to bottom, rgba(4,6,16,.55), rgba(4,6,16,0)); }
+.cont-scrim--bot { bottom: 0; height: 360px; background: linear-gradient(to top, rgba(4,6,16,.92) 0%, rgba(4,6,16,.78) 55%, rgba(4,6,16,0) 100%); }
+
+/* readout */
+.cont-readout { margin-top: 40px; display: flex; flex-direction: column; gap: 6px; }
+.cont-when { font-size: 13px; letter-spacing: 0.16em; }
+.cont-temp-row { display: flex; align-items: flex-start; line-height: 0.9; }
+.cont-temp { font-size: 120px; font-weight: 300; letter-spacing: -0.04em; }
+.cont-deg { font-size: 40px; font-weight: 300; margin-top: 12px; }
+.cont-cond { font-size: 26px; font-weight: 500; margin-top: 8px; }
+.cont-feel { font-size: 16px; color: #dfe5f2; max-width: 300px; line-height: 1.4; }
+.cont-next { margin-top: 14px; display: inline-flex; align-self: flex-start; gap: 8px; padding: 8px 12px; font-size: 14px; align-items: center; }
+
+/* metrics — inline HUD (no boxes): label + value with a thin accent gauge beneath */
+.cont-metrics { margin-top: 22px; display: flex; gap: 24px; }
+.cont-metric { flex: 1 1 0; min-width: 0; }
+.cont-metric-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.cont-metric-v { font-size: 20px; font-weight: 500; white-space: nowrap; }
+.cont-metric-bar { margin-top: 8px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.cont-metric-bar span { display: block; height: 100%; border-radius: 2px; transition: width 0.5s ease, background 1.4s ease; }
+.cont-unit { font-size: 13px; color: #aab3c7; }
+
+.cont-grow { flex-grow: 1; }
+
+/* scrubber */
+.cont-scrubber { display: flex; flex-direction: column; gap: 12px; }
+.cont-scrub-head { display: flex; justify-content: space-between; }
+/* weather strip — the slider IS the day's sky, painted hour by hour */
+.cont-strip { position: relative; height: 20px; border-radius: 10px; touch-action: none; cursor: pointer; border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 0 2px 12px rgba(0,0,0,.4); }
+.cont-strip:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.cont-strip-handle { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #eaf6ff; box-shadow: 0 0 8px rgba(180, 228, 255, 0.85); }
+.cont-strip-ticks { position: relative; height: 13px; margin-top: 10px; }
+.cont-strip-ticks span { position: absolute; font-size: 9px; letter-spacing: .12em; color: #8893a8; white-space: nowrap; }
+.cont-controls { display: flex; gap: 10px; }
+.cont-play { flex: 1; height: 48px; border-radius: 12px; border: 0; color: #0b0e1a; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 500; letter-spacing: 0.14em; cursor: pointer; }
+.cont-now { width: 96px; height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,.28); background: rgba(4,6,16,.55); font-size: 13px; letter-spacing: 0.14em; color: inherit; cursor: pointer; }
+
+/* header pill */
+.cont-pill { font-size: 11px; letter-spacing: 0.18em; padding: 7px 11px; border-radius: 999px; background: rgba(4, 6, 16, 0.45); }
+
+.cont button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* PWA "new version" prompt — floated above the fixed Continuum layer */
+/* Same banner component as Imagined/Classic; data-cond (set for Continuum in App)
+   themes --accent for it — no retint here, just float it on top. */
+.cont-update-host { position: fixed; left: 16px; right: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); z-index: 20; display: flex; justify-content: center; pointer-events: none; }
+.cont-update-host .update-banner { width: 100%; max-width: 360px; margin-bottom: 0; pointer-events: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cont .ease, .cont-strip-handle { transition: none; }
+}

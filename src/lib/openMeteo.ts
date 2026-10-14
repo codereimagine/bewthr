@@ -17,6 +17,11 @@ export interface HourlyWeather {
   temperature_2m: number[]
   weather_code: number[]
   is_day: number[]
+  // Continuum (P1): extra hourly fields so the sky can render any hour, not just now.
+  precipitation: number[]
+  precipitation_probability: number[]
+  cloud_cover: number[]
+  wind_speed_10m: number[]
 }
 
 export interface DailyWeather {
@@ -44,7 +49,7 @@ export async function fetchWeather(
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${roundCoord(lat, precision)}&longitude=${roundCoord(lon, precision)}` +
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,surface_pressure` +
-    `&hourly=temperature_2m,weather_code,is_day` +
+    `&hourly=temperature_2m,weather_code,is_day,precipitation,precipitation_probability,cloud_cover,wind_speed_10m` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
     `&temperature_unit=${encodeURIComponent(temperatureUnit)}` +
     `&wind_speed_unit=${encodeURIComponent(windUnit)}` +

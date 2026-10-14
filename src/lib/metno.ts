@@ -24,12 +24,13 @@ interface MetnoInstant {
   relative_humidity?: number
   wind_speed?: number
   air_pressure_at_sea_level?: number
+  cloud_area_fraction?: number
 }
 interface MetnoStep {
   time: string
   data: {
     instant: { details: MetnoInstant }
-    next_1_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } }
+    next_1_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number; probability_of_precipitation?: number } }
     next_6_hours?: { summary?: { symbol_code?: string } }
     next_12_hours?: { summary?: { symbol_code?: string } }
   }
@@ -132,6 +133,11 @@ export async function fetchWeatherMetno(
     temperature_2m: hourlySteps.map((s) => convTemp(s.data.instant.details.air_temperature ?? 0, tempUnit)),
     weather_code: hourlySteps.map((s) => wmoFromSymbol(symbolOf(s))),
     is_day: hourlySteps.map((s) => isDayFromSymbol(symbolOf(s))),
+    // Continuum parity: safe defaults so the sky math never sees NaN when MET.no omits a field.
+    precipitation: hourlySteps.map((s) => s.data.next_1_hours?.details?.precipitation_amount ?? 0),
+    precipitation_probability: hourlySteps.map((s) => s.data.next_1_hours?.details?.probability_of_precipitation ?? 0),
+    cloud_cover: hourlySteps.map((s) => s.data.instant.details.cloud_area_fraction ?? 0),
+    wind_speed_10m: hourlySteps.map((s) => convWind(s.data.instant.details.wind_speed ?? 0, windUnit)),
   }
 
   // Aggregate the timeseries into per-day max/min; the symbol nearest local noon

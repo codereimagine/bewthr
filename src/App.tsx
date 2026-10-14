@@ -17,6 +17,7 @@ import { PlacesView } from './components/PlacesView'
 import { Settings } from './components/Settings'
 import { Atmosphere } from './components/atmosphere/Atmosphere'
 import { LiveSky } from './components/LiveSky'
+import { ContinuumView } from './components/ContinuumView'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
 import { PwaUpdateProvider } from './lib/PwaUpdate'
@@ -54,7 +55,7 @@ function App() {
   useEffect(() => {
     const r = document.documentElement
     r.setAttribute('data-accent', accentMode)
-    if (accentMode === 'imagined' && current) {
+    if ((accentMode === 'imagined' || accentMode === 'continuum') && current) {
       r.setAttribute('data-cond', wxBucket(current.weather_code, current.is_day))
     } else {
       r.removeAttribute('data-cond')
@@ -63,6 +64,19 @@ function App() {
 
   return (
     <PwaUpdateProvider>
+      {accentMode === 'continuum' && weather?.hourly ? (
+        <>
+          <ContinuumView
+            hourly={weather.hourly}
+            placeName={[placeName, placeRegion].filter(Boolean).join(', ').toUpperCase() || 'SET A LOCATION'}
+            alerts={alerts}
+            onOpenPlaces={() => setPlacesViewOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+          <div className="cont-update-host"><UpdateBanner /></div>
+        </>
+      ) : (
+        <>
       {accentMode === 'imagined' && <LiveSky current={weather?.current} />}
       <Atmosphere current={weather?.current} />
       <Header
@@ -92,6 +106,8 @@ function App() {
       <div className="footer">
         <span className="footer-brand">bewthr</span>
       </div>
+        </>
+      )}
 
       <PlacesView
         open={placesViewOpen}
