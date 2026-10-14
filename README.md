@@ -8,13 +8,20 @@
 
 **▶ Open it — [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)**
 
-<sub><b>IMAGINED</b> — the full living sky</sub>
+$\textcolor{#22d3ee}{\textsf{IMAGINED}}$ — the full living sky
 <p>
   <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky with the sun over the current conditions" />
   <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky with a crescent moon and stars over the current conditions" />
   <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Sky Tonight — the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
 </p>
-<sub><b>CLASSIC</b> — a clean, minimal instrument view</sub>
+
+$\textcolor{#d946ef}{\textsf{CONTINUUM}}$ — scrub or play a full day of sky
+<p>
+  <img src="screenshots/continuum-day.png" width="45%" alt="bewthr Continuum — daytime living sky over New York with a 24-hour scrubber and a Play control" />
+  <img src="screenshots/continuum-night.png" width="45%" alt="bewthr Continuum — night living sky with real stars over New York, scrubbed to a late hour" />
+</p>
+
+$\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
 <p>
   <img src="screenshots/classic-day.png" width="30%" alt="bewthr Classic — clean light-theme instrument view of current conditions, daytime" />
   <img src="screenshots/classic-night.png" width="30%" alt="bewthr Classic — instrument view at night with a crescent moon" />
@@ -47,7 +54,8 @@ Most apps want your account, your data, and your attention. Every codereimagine 
 
 - **Today at a glance** — temperature, rain, and the sky in one calm screen.
 - **Tonight's sky** — where the sun and moon rise and set, when golden hour and dusk happen, and which planets and stars are overhead.
-- **Pick your look** — a rich "living sky" view, or a clean, simple one. One tap to switch.
+- **Play the whole day** — scrub or hit Play and watch the next 24 hours of sky flow by, sunrise to midnight.
+- **Pick your look** — a rich "living sky", a scrub-the-day timeline, or a clean, simple view. One tap to switch.
 - **Anywhere** — fast on phones and computers.
 
 ## 🛠️ Run or build it yourself (developers)
