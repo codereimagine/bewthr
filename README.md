@@ -17,8 +17,9 @@ $\textcolor{#22d3ee}{\textsf{IMAGINED}}$ — the full living sky
 
 $\textcolor{#d946ef}{\textsf{CONTINUUM}}$ — scrub or play a full day of sky
 <p>
-  <img src="screenshots/continuum-day.png" width="45%" alt="bewthr Continuum — daytime living sky over New York with a 24-hour scrubber and a Play control" />
-  <img src="screenshots/continuum-night.png" width="45%" alt="bewthr Continuum — night living sky with real stars over New York, scrubbed to a late hour" />
+  <img src="screenshots/continuum-day.png" width="30%" alt="bewthr Continuum — daytime living sky over New York with a 24-hour scrubber and a Play control" />
+  <img src="screenshots/continuum-tokyo.png" width="30%" alt="bewthr Continuum — golden-hour sky over Tokyo, scrubbed to late afternoon" />
+  <img src="screenshots/continuum-night.png" width="30%" alt="bewthr Continuum — night living sky with real stars over New York, scrubbed to a late hour" />
 </p>
 
 $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
