@@ -15,6 +15,15 @@
   font-family: var(--display, 'Space Grotesk', system-ui, sans-serif);
 }
 .cont .ease { transition: background-color 1.4s ease, color 1.4s ease, left 1.4s ease, opacity 1.4s ease; }
+
+/* drop the content below the floating update banner when it's shown (no overlap) */
+.cont--banner { padding-top: 132px; }
+
+/* Idle ambience — when not playing, the sky slowly breathes/zooms behind the static
+   UI, giving life + parallax depth. Held still during Play so scrubbing reads clean. */
+.cont .live-sky--static { animation: cont-breathe 42s ease-in-out infinite; }
+.cont--playing .live-sky--static { animation: none; }
+@keyframes cont-breathe { 0%, 100% { transform: scale(1.02); } 50% { transform: scale(1.09); } }
 .cont .mono { font-family: var(--mono, 'JetBrains Mono', monospace); }
 .cont .lbl { font-family: var(--mono, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.18em; color: #aab3c7; }
 .cont .glass { border-radius: 12px; background: rgba(4, 6, 16, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); }
@@ -82,4 +91,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cont .ease, .cont-strip-handle { transition: none; }
+  .cont .live-sky--static { animation: none; }
 }

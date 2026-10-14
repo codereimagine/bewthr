@@ -3,6 +3,7 @@ import { LiveSky } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
 import { useGeo } from '../store/geo'
+import { usePwaUpdate } from '../lib/PwaUpdate'
 import './continuum.css'
 
 // CONTINUUM — the third bewthr mode. The full-bleed sky (real astronomy, via
@@ -95,6 +96,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const setGeoEnabled = useGeo((s) => s.setEnabled)
   const requestLocation = useGeo((s) => s.requestLocation)
   const locate = () => { if (!geoEnabled) setGeoEnabled(true); else requestLocation() }
+  const bannerVisible = usePwaUpdate().bannerVisible   // drop the header below the update banner when shown
 
   const hours = useMemo(() => buildHours(hourly), [hourly])
   const len = hours.length
@@ -185,7 +187,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const ticks = [...new Set([0, Math.round(len / 4), Math.round(len / 2), Math.round((3 * len) / 4), len - 1])].filter((n) => n >= 0 && n < len)
 
   return (
-    <div className="cont" aria-label="Continuum — next 24 hours">
+    <div className={`cont${playing ? ' cont--playing' : ''}${bannerVisible ? ' cont--banner' : ''}`} aria-label="Continuum — next 24 hours">
       <LiveSky current={h.current} time={skyTime} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
