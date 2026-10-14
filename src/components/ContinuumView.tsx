@@ -232,10 +232,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
 
       <header className="cont-header">
-        <div className="cont-brand">
-          <div className="cont-brand-mark mono">B</div>
-          <div className="cont-brand-text">be<span>wthr</span></div>
-        </div>
+        <div className="cont-title mono" style={{ color: acc }}>CONTINUUM</div>
         <div className="cont-header-right">
           <button type="button" className="cont-ibtn" aria-label="Use my location" title="Use my location" onClick={locate} disabled={geoLoading} aria-busy={geoLoading}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

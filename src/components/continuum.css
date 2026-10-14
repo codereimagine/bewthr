@@ -28,6 +28,7 @@
 
 /* header */
 .cont-header { display: flex; align-items: center; justify-content: space-between; }
+.cont-title { font-size: 15px; letter-spacing: 0.22em; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
 .cont-brand { display: flex; align-items: center; gap: 10px; }
 .cont-brand-mark { width: 34px; height: 34px; border-radius: 9px; background: #ffb866; color: #1a1006; display: flex; align-items: center; justify-content: center; font-weight: 500; }
 .cont-brand-text { font-size: 22px; font-weight: 600; }

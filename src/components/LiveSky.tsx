@@ -180,6 +180,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps (idle/scrub only)
   const cloudsRef = useRef<Cloud[]>([])  // persistent cloud pool — survives condition changes, fades to target
   const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
+  const precipFRef = useRef(0)   // rain/snow opacity, faded in so precipitation doesn't pop on
   const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
   const playRef = useRef<PlayClock | null>(null)
 
@@ -239,6 +240,18 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
     // ctx = the transparent RAIN layer on top, the only surface the rAF loop touches.
     const octx = sky.getContext('2d')!
     const ctx = rain.getContext('2d')!
+
+    // Faint noise tile for gradient DITHERING — 24-bit sky gradients band visibly (overcast /
+    // dusk); a low-alpha noise over them hides the bands without reading as grain. Built once.
+    const noiseTile = document.createElement('canvas'); noiseTile.width = 64; noiseTile.height = 64
+    const ntx = noiseTile.getContext('2d')
+    let noisePattern: CanvasPattern | null = null
+    if (ntx) {
+      const nimg = ntx.createImageData(64, 64)
+      for (let i = 0; i < nimg.data.length; i += 4) { const v = (Math.random() * 255) | 0; nimg.data[i] = nimg.data[i + 1] = nimg.data[i + 2] = v; nimg.data[i + 3] = 255 }
+      ntx.putImageData(nimg, 0, 0)
+      noisePattern = octx.createPattern(noiseTile, 'repeat')
+    }
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
     // Preview-only overrides (harmless without the query params): let QA render the
@@ -303,6 +316,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           l: snowy ? 2.5 * DPR : (10 + Math.random() * 18) * DPR,
           s: snowy ? 1 + Math.random() * 1.5 : 7 + Math.random() * 9,
         }))
+        if (n > 0) precipFRef.current = 0   // fade precipitation in from nothing (no pop-on)
       }
       // Clouds come from the persistent pool (DPR applied at render), not re-seeded here.
       renderStatic()
@@ -334,6 +348,9 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       const sky = octx.createLinearGradient(0, 0, 0, H)
       sky.addColorStop(0, top); sky.addColorStop(1, bot)
       octx.fillStyle = sky; octx.fillRect(0, 0, W, H)
+      // Dither the sky gradient to kill 24-bit colour banding (very low alpha — perceptible
+      // only as smoother bands, never as grain).
+      if (noisePattern) { octx.save(); octx.globalAlpha = 0.03; octx.fillStyle = noisePattern; octx.fillRect(0, 0, W, H); octx.restore() }
       const twilight = sunAlt > -8
       const hz = octx.createLinearGradient(0, H * 0.55, 0, H)
       hz.addColorStop(0, 'rgba(0,0,0,0)')
@@ -499,8 +516,11 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
             ctx.fillStyle = crown; ctx.beginPath(); ctx.arc(lx, ly, rr * 0.8, 0, 7); ctx.fill()
           }
         }
-        if (sunAlt < -8 && !rainy && !overcast) {
-          const dim = cloudy ? 0.5 : 1
+        if (sunAlt < -4 && !rainy && !overcast) {
+          // Twilight fade: stars ease in across the dusk band (sunAlt -4°..-10°) rather than
+          // popping on at -8°, so day↔night glides. starF = 0 at -4°, 1 by -10°.
+          const starF = Math.max(0, Math.min(1, (-4 - sunAlt) / 6))
+          const dim = (cloudy ? 0.5 : 1) * starF
           const starArr = starsRef.current, starN = starCountRef.current
           for (let k = 0; k < starN; k++) {
             const st = starArr[k]
@@ -537,6 +557,8 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         }
       }
       if (drops.length) {
+        precipFRef.current += (1 - precipFRef.current) * fadeK   // ease precipitation in (time-based)
+        ctx!.save(); ctx!.globalAlpha = precipFRef.current
         ctx!.strokeStyle = snowy ? 'rgba(235,242,255,.7)' : 'rgba(190,210,240,.5)'
         ctx!.fillStyle = 'rgba(235,242,255,.85)'
         ctx!.lineWidth = 1.1 * DPR
@@ -555,6 +577,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           else { ctx!.moveTo(d.x, y); ctx!.lineTo(d.x - slant * d.l, y + d.l) }
         }
         if (!snowy) ctx!.stroke()
+        ctx!.restore()
       }
       if (rainy && bucket === 'storm' && !reduce) {
         if (now - lastBolt > 2800 + Math.random() * 4000) { flash = 1; lastBolt = now }
