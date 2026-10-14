@@ -16,8 +16,11 @@
 }
 .cont .ease { transition: background-color 1.4s ease, color 1.4s ease, left 1.4s ease, opacity 1.4s ease; }
 
-/* drop the content below the floating update banner when it's shown (no overlap) */
-.cont--banner { padding-top: 132px; }
+/* drop the content below the floating update banner when it's shown (no overlap).
+   Both a React class AND a DOM-driven :has() rule, so the push-down applies the
+   instant the banner mounts, independent of React timing. */
+.cont--banner,
+.cont:has(~ .cont-update-host .update-banner) { padding-top: 132px; }
 
 /* Idle ambience — when not playing, the sky slowly breathes/zooms behind the static
    UI, giving life + parallax depth. Held still during Play so scrubbing reads clean. */
