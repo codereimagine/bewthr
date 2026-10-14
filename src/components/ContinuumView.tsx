@@ -248,7 +248,6 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
         </div>
       </header>
       <div className="cont-place-row">
-        <div className="mono cont-pill ease" style={{ border: `1px solid ${acc}`, color: acc }}>CONTINUUM</div>
         <div className="mono cont-place">{placeName}</div>
       </div>
 
