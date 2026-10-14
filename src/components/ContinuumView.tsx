@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { LiveSky } from './LiveSky'
+import { LiveSky, type PlayClock } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
 import { useGeo } from '../store/geo'
@@ -106,16 +106,18 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const [pos, setPos] = useState(0)          // continuous 0..len-1 — smooth marker/temp/sky
   const [playing, setPlaying] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [playSpec, setPlaySpec] = useState<PlayClock | null>(null)   // sky clock handed to LiveSky during Play
   const rafRef = useRef<number | null>(null)
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
   const tempRef = useRef<HTMLSpanElement>(null)
   const posRef = useRef(0)
-  const skyBucketRef = useRef(-1)
+  const skyBucketRef = useRef(-1)             // 5-min sky bucket for scrub commits
+  const hourRef = useRef(-1)                  // rounded hour for Play content commits
   const STEP_MS = 2500                        // playback: ms per hour (~60s for the full day)
 
-  const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false) }
+  const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false); setPlaySpec(null) }
   useEffect(() => stopPlay, [])
 
   // Interpolate between hours so Play glides instead of stepping. Discrete content
@@ -127,6 +129,26 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   // Sky time interpolated, quantised to 5 min so LiveSky repaints only as the sun actually moves (not every frame).
   const skyMs = len ? Math.round((hours[flo].time.getTime() + (hours[fhi].time.getTime() - hours[flo].time.getTime()) * frac) / 3e5) * 3e5 : 0
   const skyTime = useMemo(() => new Date(skyMs), [skyMs])
+  // Stable `current` for LiveSky — it only reads weather_code + is_day, so reuse the same
+  // object across consecutive same-condition hours. That stops the canvas rAF loop tearing
+  // down and rebuilding on every hour tick during Play; a new object only on a real change.
+  // Deps are intentionally just the condition keys (not hours/i) so identity holds between
+  // same-condition hours — recompute reads the current hour's object when the condition flips.
+  const curBucket = len && hours[i] ? hours[i].b : ''
+  const curIsDay = len && hours[i] ? hours[i].current.is_day : 0
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const liveCur = useMemo(() => (len && hours[i] ? hours[i].current : null), [curBucket, curIsDay])
+
+  // The strip gradient + ticks depend only on the (stable) hours — memoize so the per-hour
+  // setPos re-render during Play doesn't rebuild the 24-stop gradient string every tick.
+  const stripGradient = useMemo(
+    () => (len ? `linear-gradient(90deg, ${hours.map((x, n) => `${skyColorFor(x)} ${(len > 1 ? (n / (len - 1)) * 100 : 50).toFixed(1)}%`).join(', ')})` : ''),
+    [hours, len],
+  )
+  const ticks = useMemo(
+    () => (len ? [...new Set([0, Math.round(len / 4), Math.round(len / 2), Math.round((3 * len) / 4), len - 1])].filter((n) => n >= 0 && n < len) : []),
+    [len],
+  )
 
   if (!len || !hours[i]) return null
   const h = hours[i]
@@ -140,23 +162,41 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   // sky + discrete content re-render only when the 5-min sky bucket changes — so the
   // weather background glides in lock-step with the slider, no render storm, and
   // NOW/PLAY stay tappable.
-  const applyPos = (p: number) => {
+  // High-frequency visuals (handle + temp) go straight to the DOM every frame.
+  const applyDom = (p: number) => {
     posRef.current = p
     if (handleRef.current) handleRef.current.style.left = `${xPct(p).toFixed(2)}%`
     if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
+  }
+  // Drag / scrub: no play clock, so the sky follows the finger via 5-min sky buckets —
+  // a React commit only when the bucket changes (background glides, no render storm).
+  const applyScrub = (p: number) => {
+    applyDom(p)
     const bucket = Math.round(skyMsAt(p) / 3e5)
     if (bucket !== skyBucketRef.current) { skyBucketRef.current = bucket; setPos(p) }
   }
-  const jump = (n: number) => { stopPlay(); const q = Math.max(0, Math.min(n, len - 1)); skyBucketRef.current = Math.round(skyMsAt(q) / 3e5); setPos(q) }
+  // Play: LiveSky drives the sky from its own continuous clock, so React only refreshes the
+  // discrete content (condition, cards, chips) when the rounded hour changes — ~every 2.5s.
+  const applyPlay = (p: number) => {
+    applyDom(p)
+    const hr = Math.round(p)
+    if (hr !== hourRef.current) { hourRef.current = hr; setPos(p) }
+  }
+  const jump = (n: number) => { stopPlay(); const q = Math.max(0, Math.min(n, len - 1)); skyBucketRef.current = Math.round(skyMsAt(q) / 3e5); hourRef.current = Math.round(q); setPos(q) }
   const play = () => {
     if (rafRef.current != null) { stopPlay(); setPos(posRef.current); return }   // PAUSE — freeze where it is
     const start = pos >= len - 1 ? 0 : pos
     const t0 = performance.now()
-    posRef.current = start; skyBucketRef.current = Math.round(skyMsAt(start) / 3e5)
-    setPlaying(true); setPos(start)
+    posRef.current = start; hourRef.current = Math.round(start)
+    // Continuous sky clock for LiveSky: sky-ms per wall-ms over the whole tour, so the sky
+    // glides in exact lock-step with the handle (both advance from t0 at the same rate).
+    const base = skyMsAt(start), endMs = skyMsAt(len - 1)
+    const wall = (len - 1 - start) * STEP_MS
+    const rate = wall > 0 ? (endMs - base) / wall : 3.6e6 / STEP_MS
+    setPlaying(true); setPlaySpec({ base, rate, startPerf: t0, endMs }); setPos(start)
     const tick = (now: number) => {
       const p = Math.min(len - 1, start + (now - t0) / STEP_MS)
-      applyPos(p)
+      applyPlay(p)
       if (p >= len - 1) { stopPlay(); setPos(len - 1); return }
       rafRef.current = requestAnimationFrame(tick)
     }
@@ -169,8 +209,8 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     if (!r) return i
     return Math.max(0, Math.min(len - 1, ((clientX - r.left) / r.width) * (len - 1)))
   }
-  const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); applyPos(posFromX(e.clientX)) }
-  const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) applyPos(posFromX(e.clientX)) }
+  const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => { stopPlay(); dragRef.current = true; setDragging(true); bandRef.current?.setPointerCapture(e.pointerId); applyScrub(posFromX(e.clientX)) }
+  const onBandMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (dragRef.current) applyScrub(posFromX(e.clientX)) }
   const onBandUp = (e: ReactPointerEvent<HTMLDivElement>) => { dragRef.current = false; setDragging(false); setPos(posRef.current); try { bandRef.current?.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
   const onStripKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); jump(Math.min(i + 1, len - 1)) }
@@ -185,13 +225,9 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     if (group(hours[j].b) !== group(h.b)) { next = `${GROUPNAME[group(hours[j].b)]} by ${hours[j].label}`; break }
   }
 
-  // The weather strip: the day's sky painted hour-by-hour into one gradient.
-  const stripGradient = `linear-gradient(90deg, ${hours.map((x, n) => `${skyColorFor(x)} ${xPct(n).toFixed(1)}%`).join(', ')})`
-  const ticks = [...new Set([0, Math.round(len / 4), Math.round(len / 2), Math.round((3 * len) / 4), len - 1])].filter((n) => n >= 0 && n < len)
-
   return (
     <div className={`cont${playing ? ' cont--playing' : ''}${bannerVisible ? ' cont--banner' : ''}`} aria-label="Continuum — next 24 hours">
-      <LiveSky current={h.current} time={skyTime} alive />
+      <LiveSky current={liveCur} time={skyTime} alive play={playSpec} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
 

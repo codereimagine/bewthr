@@ -20,6 +20,16 @@ import './live-sky.css'
 // SMOOTHNESS is the signature: one rAF loop paced to the display refresh
 // (1–120fps), a fixed drop count on reduced-motion. DPR-capped at 2.
 
+// Continuum Play: a continuous sky clock the rAF loop advances itself, so the sun/
+// moon/sky glide at the display refresh instead of stepping once per React re-render.
+// sky-time (ms) at wall-time `now` = base + rate * (now - startPerf), clamped to endMs.
+export interface PlayClock {
+  base: number        // sky-time (ms) at play start
+  rate: number        // sky-ms per wall-ms (≈1440 at the default Play speed)
+  startPerf: number   // performance.now() captured at play start
+  endMs: number       // sky-time (ms) at the end of the tour — clamp, never overshoot
+}
+
 interface LiveSkyProps {
   current: CurrentWeather | null | undefined
   // Continuum (P2): the hour to render. Omitted/undefined = now — Imagined, unchanged.
@@ -27,6 +37,9 @@ interface LiveSkyProps {
   // Continuum: a living sky — stars twinkle + drift, with a device-tilt parallax (3D).
   // Off = Imagined/Classic, byte-for-byte unchanged.
   alive?: boolean
+  // Continuum Play only: when set, the sky time is driven continuously inside the rAF
+  // loop (not via React), so Play glides. Null/omitted = discrete `time` (idle/scrub).
+  play?: PlayClock | null
 }
 
 interface Fix {
@@ -82,42 +95,112 @@ function project(az: number, alt: number, W: number, H: number) {
   return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: H - (alt / 90) * H, vis: Math.abs(d) < FOV / 2 }
 }
 
-export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
+// Celestial fix (sun + moon alt/az + phase) for a place and instant — shared by the
+// discrete time effect and the per-frame Play clock so both compute it identically.
+function celestialFix(lat: number, lon: number, when: Date): Fix {
+  const sun = getSun(lat, lon, when)
+  const moon = getMoon(lat, lon, when)
+  return {
+    sunAlt: sun.altitude, sunAz: sun.azimuth,
+    moonAlt: moon.altitude, moonAz: moon.azimuth,
+    moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
+  }
+}
+
+type Star = { alt: number; az: number; ra: number; bf: number; tint: string }
+// Project the real bright-star catalogue to local alt/az for this instant, keeping
+// what's above the horizon. bf is a 0..1 brightness from real magnitude. (~650 stars
+// — the only expensive step, so callers throttle it to ~10-min sky-time buckets.)
+function projectStars(lat: number, lon: number, when: Date): Star[] {
+  return BRIGHT_STARS.slice(0, 650).reduce<Star[]>((acc, s) => {
+    const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
+    if (altitude > 0) acc.push({ alt: altitude, az: azimuth, ra: s.ra, bf: Math.max(0, Math.min(1, (4.7 - s.mag) / 6.16)), tint: s.tint })
+    return acc
+  }, [])
+}
+
+// Same projection, but filled into a REUSED buffer (grown lazily, entries mutated in
+// place) and returning the count of above-horizon stars. Used every frame during Play so
+// the star field glides with the sky — no 650-object array allocated per frame (that GC
+// churn would stutter). Only the first `count` entries of `buf` are valid.
+function projectStarsInto(buf: Star[], lat: number, lon: number, when: Date): number {
+  let n = 0
+  for (let idx = 0; idx < 650; idx++) {
+    const s = BRIGHT_STARS[idx]
+    if (!s) break
+    const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
+    if (altitude <= 0) continue
+    let o = buf[n]
+    if (!o) { o = buf[n] = { alt: 0, az: 0, ra: 0, bf: 0, tint: '' } }
+    o.alt = altitude; o.az = azimuth; o.ra = s.ra
+    o.bf = Math.max(0, Math.min(1, (4.7 - s.mag) / 6.16)); o.tint = s.tint
+    n++
+  }
+  return n
+}
+
+// CLOUD POOL — a fixed set of clouds seeded ONCE. A condition change doesn't re-seed/reshuffle;
+// it just retargets each cloud's opacity (active if within the new count) and the field fades to
+// match. CLOUD_RANK is the activation order: the first `cn` by rank are spread across the sky for
+// ANY count, and raising cn only ADDS clouds (nested) — partly→cloudy→overcast fills in.
+//
+// DRIFT WRAP — each cloud drifts right and wraps over CLOUD_SPAN screen-widths. The span is wide
+// enough (> 1 + 2× the max cloud radius, in widths) that a cloud fully leaves the screen before it
+// reappears on the far side, so the wrap is never an on-screen "teleport". And each lap the cloud
+// takes a fresh height/size (frnd keyed by lap), so repeated passes look like new clouds, not a
+// visible loop. The pool is oversized because only ~1/CLOUD_SPAN of it is on screen at once.
+const CLOUD_POOL = 22
+const CLOUD_SPAN = 2.4      // drift period, in screen-widths (off-screen wrap)
+const CLOUD_MARGIN = 0.7    // left offset of the span → clouds exit fully (≥ max radius in widths)
+const CLOUD_RANK: number[] = (() => {
+  const r: number[] = []
+  Array.from({ length: CLOUD_POOL }, (_, i) => ({ i, k: (i * 0.6180339887) % 1 }))
+    .sort((a, b) => a.k - b.k)
+    .forEach((o, rank) => { r[o.i] = rank })
+  return r
+})()
+const frnd = (s: number) => { const x = Math.sin(s * 127.1) * 43758.5453; return x - Math.floor(x) }   // stable per-seed [0,1)
+type Cloud = { x: number; spd: number; seed: number; rnd: number; o: number; to: number }
+const cloudH = (seed: number, lap: number) => 0.05 + frnd(seed * 7.3 + lap * 1.7) * 0.42   // fractional y, varies per lap
+const cloudR = (seed: number, lap: number) => 120 + frnd(seed * 3.1 + lap * 2.9) * 130      // base radius, varies per lap
+const DARK_CLEAR: [number, number, number] = [34, 42, 66]
+// Counts are POOL slots (≈1/CLOUD_SPAN on screen): overcast ≈9 on screen, cloudy ≈6, partly ≈3.
+const cloudCount = (rainy: boolean, overcast: boolean, cloudy: boolean, code: number) =>
+  rainy ? 19 : overcast ? 22 : cloudy ? 14 : (code === 1 || code === 2) ? 7 : 0
+
+export function LiveSky({ current, time, alive = false, play = null }: LiveSkyProps) {
   const { lat, lon } = useActiveCoords()
   const skyRef = useRef<HTMLCanvasElement>(null)
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
-  const starsRef = useRef<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>([])
-  const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps
+  const starsRef = useRef<Star[]>([])
+  const starCountRef = useRef(0)      // valid entries in starsRef (play reuses a buffer)
+  const starBufRef = useRef<Star[]>([])  // reused per-frame buffer during Play (no alloc)
+  const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps (idle/scrub only)
+  const cloudsRef = useRef<Cloud[]>([])  // persistent cloud pool — survives condition changes, fades to target
+  const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
   const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
+  const playRef = useRef<PlayClock | null>(null)
 
-  // Recompute the celestial fix when coords change (and hourly via the tick below).
+  // The Play clock lives in a ref so changing it never tears down the canvas rAF loop
+  // (the main effect below keeps running); the loop reads it each frame.
+  useEffect(() => { playRef.current = play ?? null }, [play])
+
+  // Recompute the celestial fix when coords / discrete time change. During Play this is
+  // superseded every frame by the play clock inside the rAF loop (see frame()).
   useEffect(() => {
     if (lat == null || lon == null) { fixRef.current = null; return }
     const when = time ?? new Date()
-    const sun = getSun(lat, lon, when)
-    const moon = getMoon(lat, lon, when)
-    fixRef.current = {
-      sunAlt: sun.altitude, sunAz: sun.azimuth,
-      moonAlt: moon.altitude, moonAz: moon.azimuth,
-      moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
-    }
+    fixRef.current = celestialFix(lat, lon, when)
     staticDirtyRef.current = true   // sun/moon/sky moved → repaint the static layer next frame
-    // Continuum: project the real bright-star catalogue (BSC via the xengine's starAltAz →
-    // Horizon) to local alt/az at this hour, keeping what's above the horizon. bf is a 0..1
-    // brightness factor from real magnitude. Throttled to ~10-min steps so Play doesn't
-    // recompute ~1100 positions every bucket. (Skipped in Imagined/Classic.)
+    // Star field: project the real bright-star catalogue to this hour, throttled to ~15-min
+    // sky-time buckets so scrubbing doesn't recompute ~650 positions every step. (alive only.)
     const starKey = alive ? `${Math.round(when.getTime() / 9e5)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
     if (starKey !== lastStarKeyRef.current) {
       lastStarKeyRef.current = starKey
-      starsRef.current = alive
-        ? BRIGHT_STARS.slice(0, 650).reduce<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>((acc, s) => {
-            const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
-            if (altitude > 0) acc.push({ alt: altitude, az: azimuth, ra: s.ra, bf: Math.max(0, Math.min(1, (4.7 - s.mag) / 6.16)), tint: s.tint })
-            return acc
-          }, [])
-        : []
+      starsRef.current = alive ? projectStars(lat, lon, when) : []
+      starCountRef.current = starsRef.current.length
     }
   }, [lat, lon, time, alive])
 
@@ -173,8 +256,32 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     const overcast = code === 3 || bucket === 'fog'
     let W = 0, H = 0, DPR = 1
     let drops: { x: number; y: number; l: number; s: number }[] = []
-    let clouds: { x: number; y: number; r: number; spd: number; o: number }[] = []
     let lastW = -1, lastH = -1
+
+    // Persistent cloud pool: seed once (stable positions), then on every (re)run — i.e. every
+    // condition change — just retarget opacities toward the new count so the field MORPHS
+    // instead of reshuffling. The alive loop fades c.o → c.to each frame; static sets it at once.
+    const cn = cloudCount(rainy, overcast, cloudy, code)
+    const darkTarget: [number, number, number] = rainy ? [14, 18, 30] : overcast ? [22, 28, 46] : DARK_CLEAR
+    const freshPool = cloudsRef.current.length === 0
+    if (freshPool) {
+      cloudsRef.current = Array.from({ length: CLOUD_POOL }, (_, i): Cloud => ({
+        // start position spread across the full drift span (not just the screen), so clouds are
+        // always entering/leaving from off-screen rather than all being visible at once.
+        x: ((i + 0.5) / CLOUD_POOL) * CLOUD_SPAN + (frnd(i + 1.7) - 0.5) * (CLOUD_SPAN / CLOUD_POOL) * 0.8,
+        spd: 0.15 + frnd(i + 2.1) * 0.3,
+        seed: i + 1,                      // height/size vary per lap, keyed by this + lap
+        rnd: frnd(i + 6.5),               // per-cloud opacity offset
+        o: 0, to: 0,
+      }))
+      darkCurRef.current = [...darkTarget]
+    }
+    const baseOpac = rainy || overcast ? 0.5 : 0.34
+    for (let i = 0; i < CLOUD_POOL; i++) {
+      const c = cloudsRef.current[i]
+      c.to = CLOUD_RANK[i] < cn ? baseOpac + c.rnd * 0.2 : 0
+      if (freshPool || !alive) c.o = c.to   // no fade on first paint or in the static (Imagined) layer
+    }
     function resize() {
       DPR = Math.min(devicePixelRatio || 1, 2)
       const r = rain!.getBoundingClientRect()
@@ -196,16 +303,8 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           l: snowy ? 2.5 * DPR : (10 + Math.random() * 18) * DPR,
           s: snowy ? 1 + Math.random() * 1.5 : 7 + Math.random() * 9,
         }))
-        // volumetric clouds — dense when overcast/rain, a few when partly cloudy
-        const cn = rainy ? 8 : overcast ? 9 : cloudy ? 6 : (code === 1 || code === 2) ? 3 : 0
-        clouds = Array.from({ length: cn }, (_, i) => ({
-          x: (i + 0.5) / Math.max(cn, 1) + (Math.random() - 0.5) * 0.12,
-          y: 0.05 + Math.random() * 0.42,
-          r: (120 + Math.random() * 130) * DPR,
-          spd: 0.15 + Math.random() * 0.3,
-          o: (rainy || overcast ? 0.5 : 0.34) + Math.random() * 0.2,
-        }))
       }
+      // Clouds come from the persistent pool (DPR applied at render), not re-seeded here.
       renderStatic()
     }
     // Debounce observer fires to one per frame so a burst of scroll-driven
@@ -220,7 +319,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     resize()
 
     let raf = 0
-    let prevNow = 0   // for frame-rate-independent motion (correct at 60 AND 120fps)
+    let prevNow = 0   // previous frame time — for TIME-BASED fades only (motion stays pure f(t))
     let flash = 0
     let lastBolt = 0
 
@@ -295,15 +394,17 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           octx.globalAlpha = 1
         }
       }
-      if (clouds.length && !alive) {
+      if (cloudsRef.current.length && !alive) {
         const dayLit = !!(fix && fix.sunAlt > 0)
         const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
         const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
         const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
-        for (const c of clouds) {
-          const x = ((c.x % 1.3) - 0.15) * W
-          const y = c.y * H * 0.55
-          const rr = c.r
+        for (const c of cloudsRef.current) {
+          if (c.o < 0.01) continue
+          const rr = cloudR(c.seed, 0) * DPR
+          const x = (((c.x % CLOUD_SPAN) - CLOUD_MARGIN)) * W
+          if (x < -rr * 1.2 || x > W + rr * 1.2) continue   // off-screen — skip
+          const y = cloudH(c.seed, 0) * H * 0.55
           const base = octx.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
           base.addColorStop(0, `rgba(${dark},${c.o})`); base.addColorStop(1, `rgba(${dark},0)`)
           octx.fillStyle = base; octx.beginPath(); octx.arc(x, y + rr * 0.15, rr, 0, 7); octx.fill()
@@ -321,34 +422,74 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     // PER FRAME: only the transparent rain layer is cleared + redrawn (+ lightning).
     // The sky beneath is untouched, so a frame costs a clear + thin strokes, nothing more.
     function frame(now: number) {
-      // Repaint the static sky layer only when the celestial fix changed (scrub), not
-      // every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
+      // CONTINUUM PLAY: advance the sky clock continuously here (not through React), so the
+      // sun/moon/sky AND the star field glide at the display refresh. getSun/getMoon are cheap
+      // trig; the 650-star projection is ~0.3ms (measured) so it runs every frame too — into a
+      // reused buffer, no allocation. Supersedes the discrete time effect while playing.
+      const pl = playRef.current
+      if (pl && lat != null && lon != null) {
+        const whenMs = Math.min(pl.endMs, pl.base + pl.rate * (now - pl.startPerf))
+        const when = new Date(whenMs)
+        fixRef.current = celestialFix(lat, lon, when)
+        if (alive) { starCountRef.current = projectStarsInto(starBufRef.current, lat, lon, when); starsRef.current = starBufRef.current }
+        lastStarKeyRef.current = ''   // force a fresh throttled recompute when Play stops
+        staticDirtyRef.current = true
+      }
+      // Repaint the static sky layer only when the celestial fix changed (scrub / play frame),
+      // not every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
       if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
-      // Frame-rate-independent step: 1.0 at 60fps, 0.5 at 120fps (clamped for tab-switch gaps).
-      const fr = (prevNow ? Math.min(50, now - prevNow) : 16.7) / 16.7
+      // Motion is positioned from the clock t (seconds), exactly like the xengine-projected
+      // sun/moon/stars — so cloud drift and rain/snow fall are correct at ANY refresh (60 or
+      // 120fps) with no per-frame step factor. Nothing here accumulates per frame.
+      const t = now * 0.001
+      // Opacity/colour fades eased by elapsed time (τ≈220ms), NOT per-frame — so a cloud
+      // condition change settles in the same ~0.5s at 60 AND 120fps (per-frame easing ran
+      // twice as fast at 120, snapping the transition — the Play choppiness).
+      const dtF = prevNow ? Math.min(100, now - prevNow) : 16.7
       prevNow = now
+      const fadeK = 1 - Math.exp(-dtF / 220)
       ctx.clearRect(0, 0, W, H)
       // Living sky (Continuum): clouds drift and stars twinkle on the animated layer
       // every frame — alive when idle, not just while scrubbing. A continuous
       // auto-parallax (plus device tilt, if granted) gives the 3D depth without needing
       // the motion permission. Imagined keeps its static field (alive=false).
       if (alive) {
-        const t = now * 0.001
         const ax = Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
         const ay = Math.cos(t * 0.19) * 0.3 + tiltRef.current.y * 1.5
         const fix = fixRef.current
         const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
-        if (clouds.length) {
-          const dayLit = !!(fix && fix.sunAlt > 0)
-          const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
-          const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
-          const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
-          for (const c of clouds) {
-            c.x += c.spd * 0.004 * fr   // drift across the sky (visible when idle, not just on Play)
-            const co = c.o * (0.82 + 0.18 * Math.sin(t * 0.3 + c.x * 11))   // gentle billow
-            const x = ((c.x % 1.3) - 0.15) * W + ax * 22 * DPR
-            const y = c.y * H * 0.55 + ay * 12 * DPR
-            const rr = c.r
+        if (cloudsRef.current.length) {
+          // Day/night as a SMOOTH ramp across the dawn/dusk band (sunAlt −6°..+6°) so the cloud
+          // lighting eases through sunrise instead of popping when the sun crosses the horizon.
+          const dayF = Math.max(0, Math.min(1, ((fix ? fix.sunAlt : -30) + 6) / 12))
+          // Light from the sun once it's near/above the horizon (dayF>0) — kept on the sun for
+          // the whole sunrise so the highlight direction never jumps; moon (or straight down)
+          // only in deep night, where the crown is darkest and the switch is invisible.
+          const src = dayF > 0
+            ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H)
+            : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
+          // Cross-fade the cloud base colour toward this condition's target (~0.8s) so a change
+          // like cloudy→overcast eases in. darkTarget is captured per effect run (= condition).
+          const dc = darkCurRef.current
+          dc[0] += (darkTarget[0] - dc[0]) * fadeK; dc[1] += (darkTarget[1] - dc[1]) * fadeK; dc[2] += (darkTarget[2] - dc[2]) * fadeK
+          const dark = `${Math.round(dc[0])},${Math.round(dc[1])},${Math.round(dc[2])}`
+          // Crown colour interpolated night→day by dayF (hue AND alpha) — the dawn ease.
+          const lr = Math.round(150 + 90 * dayF), lg = Math.round(168 + 76 * dayF), lb = Math.round(218 + 37 * dayF)
+          const litCol = `rgba(${lr},${lg},${lb},${(0.22 + 0.20 * dayF).toFixed(3)})`
+          for (const c of cloudsRef.current) {
+            c.o += (c.to - c.o) * fadeK   // fade toward the condition target — the morph, not a reshuffle
+            if (c.o < 0.01) continue
+            // Drift positioned from t (f(t), frame-rate independent). Wrap over CLOUD_SPAN widths so
+            // a cloud fully exits before reappearing (no on-screen teleport), and take a fresh
+            // height/size each lap so repeated passes read as new clouds, not a visible loop.
+            const cx = c.x + c.spd * 0.24 * t
+            const lap = Math.floor(cx / CLOUD_SPAN)
+            const xu = cx - lap * CLOUD_SPAN                 // position within this lap, [0, CLOUD_SPAN)
+            const rr = cloudR(c.seed, lap) * DPR
+            const x = (xu - CLOUD_MARGIN) * W + ax * 22 * DPR
+            if (x < -rr * 1.2 || x > W + rr * 1.2) continue  // off-screen — skip the draw
+            const co = c.o * (0.82 + 0.18 * Math.sin(t * 0.3 + xu * 11))   // gentle billow
+            const y = cloudH(c.seed, lap) * H * 0.55 + ay * 12 * DPR
             const base = ctx.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
             base.addColorStop(0, `rgba(${dark},${co})`); base.addColorStop(1, `rgba(${dark},0)`)
             ctx.fillStyle = base; ctx.beginPath(); ctx.arc(x, y + rr * 0.15, rr, 0, 7); ctx.fill()
@@ -360,7 +501,9 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
         }
         if (sunAlt < -8 && !rainy && !overcast) {
           const dim = cloudy ? 0.5 : 1
-          for (const st of starsRef.current) {
+          const starArr = starsRef.current, starN = starCountRef.current
+          for (let k = 0; k < starN; k++) {
+            const st = starArr[k]
             const pp = project(st.az, st.alt, W, H)
             if (!pp.vis) continue
             const bf = st.bf                              // 0..1 brightness (real magnitude)
@@ -400,11 +543,16 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
         // Rain falls vertically ("dripping down"); only a storm leans it slightly.
         // Light rain (the common case) is straight down — no "sideways" look.
         const slant = bucket === 'storm' ? 0.3 * DPR : 0
+        // Fall positioned from t: each drop's y is its seed offset by speed × elapsed seconds,
+        // wrapped over the column (span = H + a little). Deterministic stream, no per-frame
+        // accumulation and no random reset — correct at 60 AND 120fps. (d.s × DPR × 60 = the
+        // old per-frame speed × 60fps, so the fall rate is unchanged.)
+        const span = H + 24 * DPR
         if (!snowy) ctx!.beginPath()
         for (const d of drops) {
-          if (snowy) { ctx!.beginPath(); ctx!.arc(d.x, d.y, d.l, 0, 7); ctx!.fill(); d.y += d.s * DPR * fr; d.x += Math.sin(d.y * 0.02) * 0.5 * fr }
-          else { ctx!.moveTo(d.x, d.y); ctx!.lineTo(d.x - slant * d.l, d.y + d.l); d.y += d.s * DPR * fr; d.x -= slant * d.s * DPR * 0.6 * fr }
-          if (d.y > H) { d.y = -20; d.x = Math.random() * W }
+          const y = (((d.y + d.s * DPR * 60 * t) % span) + span) % span - 20
+          if (snowy) { const x = d.x + Math.sin(y * 0.02) * 8 * DPR; ctx!.beginPath(); ctx!.arc(x, y, d.l, 0, 7); ctx!.fill() }
+          else { ctx!.moveTo(d.x, y); ctx!.lineTo(d.x - slant * d.l, y + d.l) }
         }
         if (!snowy) ctx!.stroke()
       }
