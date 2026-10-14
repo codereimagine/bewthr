@@ -76,7 +76,10 @@
 .cont button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 /* PWA "new version" prompt — floated above the fixed Continuum layer */
-.cont-update-host { position: fixed; left: 16px; right: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); z-index: 20; display: flex; justify-content: center; pointer-events: none; }
+/* the update banner inherits --accent; Continuum's base --accent is still orange,
+   so retint it to the mode's cyan here so the banner matches the rest of the view */
+.cont-update-host { position: fixed; left: 16px; right: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); z-index: 20; display: flex; justify-content: center; pointer-events: none;
+  --accent: #9ad9ea; --accent-soft: rgba(154, 217, 234, 0.14); --accent-glow: rgba(154, 217, 234, 0.26); }
 .cont-update-host .update-banner { width: 100%; max-width: 360px; margin-bottom: 0; pointer-events: auto; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55); }
 
 @media (prefers-reduced-motion: reduce) {
