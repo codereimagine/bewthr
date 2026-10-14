@@ -4,6 +4,8 @@
 
 ### The weather, shown as a real, living sky.
 
+$\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ · $\textcolor{#f5a623}{\textsf{continuity}}$
+
 *No accounts, no sign-up, no ads — and your exact location never leaves your device.*
 
 **▶ Open it — [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/)**
@@ -29,7 +31,7 @@ $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
   <img src="screenshots/classic-sky.png" width="30%" alt="bewthr Classic — Sky Tonight data panel: sun and moon times, planets and constellations" />
 </p>
 
-<sub>By <b>Bert Peters</b> · the weather axis of <a href="https://github.com/codereimagine">codereimagine</a></sub>
+<sub>By <b>Bert Peters</b> · the continuum axis of <a href="https://github.com/codereimagine">codereimagine</a></sub>
 
 </div>
 
@@ -37,13 +39,13 @@ $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
 
 ## 🌤️ What is it?
 
-bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. The moon shows its real shape for tonight. If it's raining outside, rain falls on the screen. It's the weather you can just *look at*.
+bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. The moon shows its real shape for tonight. If it's raining outside, rain falls on the screen. It's the weather you can just $\textcolor{#22d3ee}{\textsf{look at}}$.
 
 No app store, no account, nothing to sign up for. Open the link and it works. Like it? Add it to your home screen like any other app.
 
 ## ✨ How we do things differently
 
-Most apps want your account, your data, and your attention. Every codereimagine app is built the other way round:
+Most apps want your account, your data, and your attention. Every codereimagine app is built $\textcolor{#d946ef}{\textsf{the other way round}}$:
 
 - **Private by default** — no accounts, no tracking, nothing sold. Your exact location stays on *your* device.
 - **No ads, no clutter** — nothing on the screen is trying to sell you something.
@@ -58,6 +60,15 @@ Most apps want your account, your data, and your attention. Every codereimagine 
 - **Play the whole day** — scrub or hit Play and watch the next 24 hours of sky flow by, sunrise to midnight.
 - **Pick your look** — a rich "living sky", a scrub-the-day timeline, or a clean, simple view. One tap to switch.
 - **Anywhere** — fast on phones and computers.
+
+## 🧭 How to use it
+
+1. **Open it** — tap [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/). No install, no account, nothing to sign up for.
+2. **Set your place** — allow location once (the ◎ button), or tap **+** to add a city by name. Your exact spot never leaves your device.
+3. **Read the sky** — the background *is* the real sky for your place and time; the readout gives you the temperature, the condition, and the hour.
+4. **Switch the look** — tap **⚙ → Mode**: $\textcolor{#22d3ee}{\textsf{Imagined}}$ (the full living sky), $\textcolor{#d946ef}{\textsf{Continuum}}$ (scrub the day), or $\textcolor{#f5a623}{\textsf{Classic}}$ (a clean instrument).
+5. **Play the day** — in Continuum, drag the 24-hour strip or hit **▶ Play** to watch sunrise → midnight glide by; **NOW** snaps back to the present.
+6. **Keep it** — add it to your home screen and it works offline, even on a weak signal.
 
 ## 🛠️ Run or build it yourself (developers)
 
@@ -83,7 +94,7 @@ npm test           # unit tests
 
 ## 🙌 Credits & thanks
 
-Built with [Claude Code](https://claude.com/claude-code). Nothing here is hidden — bewthr stands on:
+Built with [Claude Code](https://claude.com/claude-code). $\textcolor{#f5a623}{\textsf{Nothing here is hidden}}$ — bewthr stands on:
 
 - **Weather data** — [Open-Meteo](https://open-meteo.com) (CC BY 4.0) · [MET Norway](https://www.met.no/en) · US National Weather Service.
 - **Astronomy** — [`astronomy-engine`](https://github.com/cosinekitty/astronomy) (MIT) by Don Cross.
