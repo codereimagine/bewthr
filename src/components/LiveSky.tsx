@@ -323,8 +323,8 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
       // the motion permission. Imagined keeps its static field (alive=false).
       if (alive) {
         const t = now * 0.001
-        const ax = Math.sin(t * 0.26) * 0.6 + tiltRef.current.x   // auto 3D orbit + device tilt
-        const ay = Math.cos(t * 0.19) * 0.45 + tiltRef.current.y
+        const ax = Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
+        const ay = Math.cos(t * 0.19) * 0.3 + tiltRef.current.y * 1.5
         const fix = fixRef.current
         const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
         if (clouds.length) {
@@ -351,14 +351,21 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           for (const st of starsRef.current) {
             const pp = project(st.az, st.alt, W, H)
             if (!pp.vis) continue
-            const depth = st.mag < 1.5 ? 1 : st.mag < 2.5 ? 0.7 : 0.45
-            const x = pp.x + ax * depth * 22 * DPR
-            const y = pp.y + ay * depth * 22 * DPR
+            const depth = st.mag < 1.5 ? 1 : st.mag < 2.5 ? 0.5 : 0.22   // wide near/far spread = depth
+            const x = pp.x + ax * depth * 36 * DPR
+            const y = pp.y + ay * depth * 36 * DPR
             const bright = st.mag < 1.5
             const tw = 0.62 + 0.38 * Math.sin(t * (1 + st.mag * 0.4) + st.ra * 3)
-            ctx.globalAlpha = (bright ? 1 : st.mag < 2.5 ? 0.8 : 0.56) * dim * tw
+            const a = (bright ? 1 : st.mag < 2.5 ? 0.8 : 0.56) * dim * tw
+            const s = (bright ? 2.8 : st.mag < 2.5 ? 1.9 : 1.2) * DPR
+            if (st.mag < 2.5) {   // soft glow halo on the nearer/brighter stars — they pop forward
+              const gr = ctx.createRadialGradient(x, y, 0, x, y, s * 3.6)
+              gr.addColorStop(0, `rgba(${bright ? '255,255,255' : '208,222,255'},${a * 0.5})`)
+              gr.addColorStop(1, 'transparent')
+              ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, s * 3.6, 0, 7); ctx.fill()
+            }
+            ctx.globalAlpha = a
             ctx.fillStyle = bright ? '#ffffff' : '#eaf0ff'
-            const s = (bright ? 2.7 : st.mag < 2.5 ? 1.9 : 1.3) * DPR
             ctx.fillRect(x, y, s, s)
           }
           ctx.globalAlpha = 1
