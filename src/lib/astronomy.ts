@@ -97,6 +97,15 @@ export function moonAltAz(lat: number, lon: number, date: Date): { altitude: num
   return { altitude: h.altitude, azimuth: h.azimuth }
 }
 
+// A fixed star (equatorial RA in hours, Dec in degrees) → local alt/az at a time &
+// place. Same engine path as the sun/moon, so the Continuum star field rotates with
+// the real sky as the hour is scrubbed. Precession is ignored (visual, not ephemeris).
+export function starAltAz(lat: number, lon: number, date: Date, raHours: number, decDeg: number): { altitude: number; azimuth: number } {
+  const o = new Observer(lat, lon, 0)
+  const h = Horizon(date, o, raHours, decDeg, 'normal')
+  return { altitude: h.altitude, azimuth: h.azimuth }
+}
+
 // The daylight window to draw the sun-path arc over: rise on the left, set on the
 // right, always in order (rise < set) and bracketing `date`. getSun's rise/set are
 // the NEXT ones, so after solar noon the next rise is tomorrow while the next set is

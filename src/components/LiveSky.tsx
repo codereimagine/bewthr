@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
-import { getSun, getMoon } from '../lib/astronomy'
+import { getSun, getMoon, starAltAz } from '../lib/astronomy'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
 import './live-sky.css'
@@ -39,6 +39,14 @@ interface Fix {
 
 const FACE = 180 // face south; sun/moon transit the southern sky (N hemisphere)
 const FOV = 170
+// Star field in equatorial coords (RA hours, Dec deg) — projected through the xengine
+// (starAltAz) so the Continuum sky rotates with the real sky as the hour is scrubbed.
+// mag is a drawn brightness/size tier, not a catalogue value.
+const STAR_CATALOG: { ra: number; dec: number; mag: number }[] = Array.from({ length: 900 }, (_, i) => ({
+  ra: ((i * 9301 + 49297) % 233280) / 233280 * 24,
+  dec: ((i * 4523 + 1013) % 233280) / 233280 * 150 - 75,
+  mag: i % 12 === 0 ? 0.7 : i % 4 === 0 ? 1.8 : 3.0,
+}))
 
 // Parse a colour to [r,g,b]. Handles both `#rrggbb` AND `rgb(r,g,b)` so a colour
 // that was already produced by mix() can be safely mixed again (the rain path
@@ -84,6 +92,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
+  const starsRef = useRef<{ alt: number; az: number; mag: number; ra: number }[]>([])
 
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
@@ -96,7 +105,17 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
       moonAlt: moon.altitude, moonAz: moon.azimuth,
       moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
     }
-  }, [lat, lon, time])
+    // Continuum: project the star catalogue to alt/az through the xengine at this hour,
+    // keeping only what's above the horizon. Recomputed as the scrubbed hour changes, so
+    // the field rotates with the real sky. (Skipped entirely in Imagined/Classic.)
+    starsRef.current = alive
+      ? STAR_CATALOG.reduce<{ alt: number; az: number; mag: number; ra: number }[]>((acc, s) => {
+          const { altitude, azimuth } = starAltAz(lat, lon, when, s.ra, s.dec)
+          if (altitude > 0) acc.push({ alt: altitude, az: azimuth, mag: s.mag, ra: s.ra })
+          return acc
+        }, [])
+      : []
+  }, [lat, lon, time, alive])
 
   // Continuum 3D: gentle parallax from device tilt. iOS needs a gesture to grant
   // motion access, so request it on the first tap; no-op if unavailable/denied.
@@ -271,7 +290,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           octx.globalAlpha = 1
         }
       }
-      if (clouds.length) {
+      if (clouds.length && !alive) {
         const dayLit = !!(fix && fix.sunAlt > 0)
         const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
         const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
@@ -298,24 +317,48 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     // The sky beneath is untouched, so a frame costs a clear + thin strokes, nothing more.
     function frame(now: number) {
       ctx.clearRect(0, 0, W, H)
-      // Living night sky (Continuum): twinkling, gently drifting stars on the animated
-      // layer, offset by device tilt for a parallax/3D feel. Imagined keeps its static field.
-      if (alive && !rainy && !overcast) {
-        const sunAlt = forceAlt != null ? forceAlt : (fixRef.current ? fixRef.current.sunAlt : -30)
-        if (sunAlt < -8) {
+      // Living sky (Continuum): clouds drift and stars twinkle on the animated layer
+      // every frame — alive when idle, not just while scrubbing. A continuous
+      // auto-parallax (plus device tilt, if granted) gives the 3D depth without needing
+      // the motion permission. Imagined keeps its static field (alive=false).
+      if (alive) {
+        const t = now * 0.001
+        const ax = Math.sin(t * 0.26) * 0.6 + tiltRef.current.x   // auto 3D orbit + device tilt
+        const ay = Math.cos(t * 0.19) * 0.45 + tiltRef.current.y
+        const fix = fixRef.current
+        const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
+        if (clouds.length) {
+          const dayLit = !!(fix && fix.sunAlt > 0)
+          const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H) : { x: W * 0.5, y: 0, vis: false })
+          const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
+          const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
+          for (const c of clouds) {
+            c.x += c.spd * 0.0004   // slow drift across the sky
+            const x = ((c.x % 1.3) - 0.15) * W + ax * 22 * DPR
+            const y = c.y * H * 0.55 + ay * 12 * DPR
+            const rr = c.r
+            const base = ctx.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
+            base.addColorStop(0, `rgba(${dark},${c.o})`); base.addColorStop(1, `rgba(${dark},0)`)
+            ctx.fillStyle = base; ctx.beginPath(); ctx.arc(x, y + rr * 0.15, rr, 0, 7); ctx.fill()
+            const lx = x + (src.x - x) * 0.1, ly = y - rr * 0.22
+            const crown = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr * 0.8)
+            crown.addColorStop(0, litCol); crown.addColorStop(1, 'transparent')
+            ctx.fillStyle = crown; ctx.beginPath(); ctx.arc(lx, ly, rr * 0.8, 0, 7); ctx.fill()
+          }
+        }
+        if (sunAlt < -8 && !rainy && !overcast) {
           const dim = cloudy ? 0.5 : 1
-          const t = now * 0.001, px = tiltRef.current.x, py = tiltRef.current.y
-          for (let i = 0; i < 180; i++) {
-            const bx = ((i * 9301 + 49297) % 233280) / 233280 * W
-            const by = ((i * 4523 + 1013) % 233280) / 233280 * H * 0.62
-            const depth = 0.35 + (i % 5) / 5 * 0.65
-            const x = bx + px * depth * 26 * DPR + Math.sin(t * 0.08 + i) * 2.2 * DPR
-            const y = by + py * depth * 26 * DPR + Math.cos(t * 0.06 + i * 0.7) * 1.4 * DPR
-            const bright = i % 11 === 0
-            const tw = 0.55 + 0.45 * Math.sin(t * (1.1 + (i % 7) * 0.26) + i * 1.3)
-            ctx.globalAlpha = (0.42 + (i % 5) / 8) * dim * tw
-            ctx.fillStyle = bright ? '#ffffff' : '#dfe8ff'
-            const s = (bright ? 2.3 : 1.3) * DPR
+          for (const st of starsRef.current) {
+            const pp = project(st.az, st.alt, W, H)
+            if (!pp.vis) continue
+            const depth = st.mag < 1.5 ? 1 : st.mag < 2.5 ? 0.7 : 0.45
+            const x = pp.x + ax * depth * 22 * DPR
+            const y = pp.y + ay * depth * 22 * DPR
+            const bright = st.mag < 1.5
+            const tw = 0.62 + 0.38 * Math.sin(t * (1 + st.mag * 0.4) + st.ra * 3)
+            ctx.globalAlpha = (bright ? 1 : st.mag < 2.5 ? 0.8 : 0.56) * dim * tw
+            ctx.fillStyle = bright ? '#ffffff' : '#eaf0ff'
+            const s = (bright ? 2.7 : st.mag < 2.5 ? 1.9 : 1.3) * DPR
             ctx.fillRect(x, y, s, s)
           }
           ctx.globalAlpha = 1
@@ -344,7 +387,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           ctx!.fillStyle = g; ctx!.fillRect(0, 0, W, H * 0.7); flash *= 0.86
         }
       }
-      if (!reduce) raf = requestAnimationFrame(frame)
+      if (!reduce || alive) raf = requestAnimationFrame(frame)
     }
 
     // renderStatic() already ran inside resize(); kick off the animation loop.
