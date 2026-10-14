@@ -55,7 +55,7 @@ function App() {
   useEffect(() => {
     const r = document.documentElement
     r.setAttribute('data-accent', accentMode)
-    if (accentMode === 'imagined' && current) {
+    if ((accentMode === 'imagined' || accentMode === 'continuum') && current) {
       r.setAttribute('data-cond', wxBucket(current.weather_code, current.is_day))
     } else {
       r.removeAttribute('data-cond')

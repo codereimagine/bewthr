@@ -32,14 +32,25 @@ const group = (b: WxBucket) => (b === 'clear-day' || b === 'clear-night') ? 'cle
 // Sky swatch per condition — a compressed look at the real sky, painted along the
 // weather strip so the slider itself shows the day (dark night → blue day → dusk).
 const SKY: Record<WxBucket, string> = {
-  'clear-day': '#4f97e0', 'clear-night': '#1a2340', partly: '#7b94b6',
-  cloud: '#5c6676', fog: '#6a7280', rain: '#38465c', storm: '#2a2440', snow: '#c2cbd8',
+  'clear-day': '#4f9fe6', 'clear-night': '#161f3c', partly: '#6f9fd0',
+  cloud: '#6d7f99', fog: '#79879d', rain: '#4a5d7a', storm: '#3a3f63', snow: '#aec4dc',
+}
+// Mix two hex colours — used to darken day-coloured conditions when the hour is night.
+const mixHex = (a: string, b: string, t: number) => {
+  const ch = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
+  const A = ch(a), B = ch(b)
+  return '#' + A.map((v, k) => Math.round(v + (B[k] - v) * t).toString(16).padStart(2, '0')).join('')
 }
 
 interface Hour {
   label: string; temp: number; b: WxBucket; rain: number; wind: number; cloud: number
   time: Date; current: CurrentWeather
 }
+
+// The strip colour for an hour: its sky swatch, darkened when that hour is at night
+// (clear buckets already carry day/night, so only the shared ones need it).
+const skyColorFor = (hr: Hour) =>
+  (hr.b === 'clear-day' || hr.b === 'clear-night' || hr.current.is_day) ? SKY[hr.b] : mixHex(SKY[hr.b], '#141c34', 0.5)
 
 // Build the 24-hour window from the current hour forward, from real Open-Meteo
 // hourly data. Device clock (not Open-Meteo's zone) decides "now", per the spec.
@@ -170,7 +181,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   }
 
   // The weather strip: the day's sky painted hour-by-hour into one gradient.
-  const stripGradient = `linear-gradient(90deg, ${hours.map((x, n) => `${SKY[x.b]} ${xPct(n).toFixed(1)}%`).join(', ')})`
+  const stripGradient = `linear-gradient(90deg, ${hours.map((x, n) => `${skyColorFor(x)} ${xPct(n).toFixed(1)}%`).join(', ')})`
   const ticks = [...new Set([0, Math.round(len / 4), Math.round(len / 2), Math.round((3 * len) / 4), len - 1])].filter((n) => n >= 0 && n < len)
 
   return (

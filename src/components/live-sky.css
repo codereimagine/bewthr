@@ -46,7 +46,7 @@
 /* The living sky is dark, so Imagined always uses a dark, legible palette —
    regardless of the light/dark/night/auto toggle (that toggle shapes Classic).
    This keeps chrome readable over the sky in every theme. */
-:root[data-accent='imagined'] {
+:root[data-accent='imagined'], :root[data-accent='continuum'] {
   --text: #f5f5f5;
   /* Default Imagined accent — used before any weather loads (no data-cond yet), so
      Imagined never falls back to the Classic orange. A neutral sky blue. Weather
@@ -67,22 +67,22 @@
 
 /* Text stays light in every Imagined theme (never dark-on-dark), and a soft shadow
    keeps it readable whether the veil brightens (Light) or deepens (Night) the sky. */
-:root[data-accent='imagined'] body {
+:root[data-accent='imagined'] body, :root[data-accent='continuum'] body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* Lighter weather accents in Imagined ONLY — the accent is used as text colour
+/* Lighter weather accents over the live sky — the accent is used as text colour
    throughout, and the darker shades wash out over the sky. These lift every
-   accent-coloured value/label/border for legibility. Classic accents untouched
-   (this needs data-accent='imagined', and higher specificity than the base cond). */
-:root[data-accent='imagined'][data-cond='clear-day']   { --accent: #ffb866; }
-:root[data-accent='imagined'][data-cond='clear-night'] { --accent: #8fe6f5; }
-:root[data-accent='imagined'][data-cond='partly']      { --accent: #c4d5f7; }
-:root[data-accent='imagined'][data-cond='cloud']       { --accent: #aab6ff; }
-:root[data-accent='imagined'][data-cond='fog']         { --accent: #b6c8ea; }
-:root[data-accent='imagined'][data-cond='rain']        { --accent: #93d8fb; }
-:root[data-accent='imagined'][data-cond='snow']        { --accent: #a6e6f6; }
-:root[data-accent='imagined'][data-cond='storm']       { --accent: #ef86f2; }
+   accent-coloured value/label/border for legibility. Applies to Imagined AND
+   Continuum (both full-bleed sky); Classic accents untouched. */
+:root[data-accent='imagined'][data-cond='clear-day'],   :root[data-accent='continuum'][data-cond='clear-day']   { --accent: #ffb866; }
+:root[data-accent='imagined'][data-cond='clear-night'], :root[data-accent='continuum'][data-cond='clear-night'] { --accent: #8fe6f5; }
+:root[data-accent='imagined'][data-cond='partly'],      :root[data-accent='continuum'][data-cond='partly']      { --accent: #c4d5f7; }
+:root[data-accent='imagined'][data-cond='cloud'],       :root[data-accent='continuum'][data-cond='cloud']       { --accent: #aab6ff; }
+:root[data-accent='imagined'][data-cond='fog'],         :root[data-accent='continuum'][data-cond='fog']         { --accent: #b6c8ea; }
+:root[data-accent='imagined'][data-cond='rain'],        :root[data-accent='continuum'][data-cond='rain']        { --accent: #93d8fb; }
+:root[data-accent='imagined'][data-cond='snow'],        :root[data-accent='continuum'][data-cond='snow']        { --accent: #a6e6f6; }
+:root[data-accent='imagined'][data-cond='storm'],       :root[data-accent='continuum'][data-cond='storm']       { --accent: #ef86f2; }
 
 /* Reveal the sky behind the instrument chrome (Imagined only). */
 :root[data-accent='imagined'],
