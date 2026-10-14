@@ -23,6 +23,9 @@ interface LiveSkyProps {
   current: CurrentWeather | null | undefined
   // Continuum (P2): the hour to render. Omitted/undefined = now — Imagined, unchanged.
   time?: Date | null
+  // Continuum: a living sky — stars twinkle + drift, with a device-tilt parallax (3D).
+  // Off = Imagined/Classic, byte-for-byte unchanged.
+  alive?: boolean
 }
 
 interface Fix {
@@ -75,11 +78,12 @@ function project(az: number, alt: number, W: number, H: number) {
   return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: H - (alt / 90) * H, vis: Math.abs(d) < FOV / 2 }
 }
 
-export function LiveSky({ current, time }: LiveSkyProps) {
+export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
   const { lat, lon } = useActiveCoords()
   const skyRef = useRef<HTMLCanvasElement>(null)
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
+  const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
 
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
@@ -93,6 +97,32 @@ export function LiveSky({ current, time }: LiveSkyProps) {
       moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
     }
   }, [lat, lon, time])
+
+  // Continuum 3D: gentle parallax from device tilt. iOS needs a gesture to grant
+  // motion access, so request it on the first tap; no-op if unavailable/denied.
+  useEffect(() => {
+    if (!alive || typeof window === 'undefined') return
+    let attached = false
+    const onOrient = (e: DeviceOrientationEvent) => {
+      const gx = Math.max(-1, Math.min(1, (e.gamma ?? 0) / 25))
+      const gy = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 25))
+      tiltRef.current.x += (gx - tiltRef.current.x) * 0.12
+      tiltRef.current.y += (gy - tiltRef.current.y) * 0.12
+    }
+    const attach = () => { if (!attached) { window.addEventListener('deviceorientation', onOrient); attached = true } }
+    const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> } | undefined
+    let reqGesture: (() => void) | null = null
+    if (DOE && typeof DOE.requestPermission === 'function') {
+      reqGesture = () => { DOE.requestPermission!().then((r) => { if (r === 'granted') attach() }).catch(() => {}) }
+      window.addEventListener('pointerdown', reqGesture, { once: true })
+    } else {
+      attach()
+    }
+    return () => {
+      if (reqGesture) window.removeEventListener('pointerdown', reqGesture)
+      if (attached) window.removeEventListener('deviceorientation', onOrient)
+    }
+  }, [alive])
 
   useEffect(() => {
     const sky = skyRef.current
@@ -201,7 +231,7 @@ export function LiveSky({ current, time }: LiveSkyProps) {
         }
         octx.globalCompositeOperation = 'source-over'
       }
-      if (fix && sunAlt < -8 && !rainy && !overcast) {
+      if (fix && sunAlt < -8 && !rainy && !overcast && !alive) {
         const dim = cloudy ? 0.5 : 1
         for (let i = 0; i < 180; i++) {
           const x = ((i * 9301 + 49297) % 233280) / 233280 * W
@@ -268,6 +298,29 @@ export function LiveSky({ current, time }: LiveSkyProps) {
     // The sky beneath is untouched, so a frame costs a clear + thin strokes, nothing more.
     function frame(now: number) {
       ctx.clearRect(0, 0, W, H)
+      // Living night sky (Continuum): twinkling, gently drifting stars on the animated
+      // layer, offset by device tilt for a parallax/3D feel. Imagined keeps its static field.
+      if (alive && !rainy && !overcast) {
+        const sunAlt = forceAlt != null ? forceAlt : (fixRef.current ? fixRef.current.sunAlt : -30)
+        if (sunAlt < -8) {
+          const dim = cloudy ? 0.5 : 1
+          const t = now * 0.001, px = tiltRef.current.x, py = tiltRef.current.y
+          for (let i = 0; i < 180; i++) {
+            const bx = ((i * 9301 + 49297) % 233280) / 233280 * W
+            const by = ((i * 4523 + 1013) % 233280) / 233280 * H * 0.62
+            const depth = 0.35 + (i % 5) / 5 * 0.65
+            const x = bx + px * depth * 26 * DPR + Math.sin(t * 0.08 + i) * 2.2 * DPR
+            const y = by + py * depth * 26 * DPR + Math.cos(t * 0.06 + i * 0.7) * 1.4 * DPR
+            const bright = i % 11 === 0
+            const tw = 0.55 + 0.45 * Math.sin(t * (1.1 + (i % 7) * 0.26) + i * 1.3)
+            ctx.globalAlpha = (0.42 + (i % 5) / 8) * dim * tw
+            ctx.fillStyle = bright ? '#ffffff' : '#dfe8ff'
+            const s = (bright ? 2.3 : 1.3) * DPR
+            ctx.fillRect(x, y, s, s)
+          }
+          ctx.globalAlpha = 1
+        }
+      }
       if (drops.length) {
         ctx!.strokeStyle = snowy ? 'rgba(235,242,255,.7)' : 'rgba(190,210,240,.5)'
         ctx!.fillStyle = 'rgba(235,242,255,.85)'
@@ -299,7 +352,7 @@ export function LiveSky({ current, time }: LiveSkyProps) {
     raf = requestAnimationFrame(frame)
 
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [current, lat, lon, time])
+  }, [current, lat, lon, time, alive])
 
   return (
     <>

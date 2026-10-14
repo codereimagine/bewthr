@@ -188,7 +188,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
 
   return (
     <div className={`cont${playing ? ' cont--playing' : ''}${bannerVisible ? ' cont--banner' : ''}`} aria-label="Continuum — next 24 hours">
-      <LiveSky current={h.current} time={skyTime} />
+      <LiveSky current={h.current} time={skyTime} alive />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
 
