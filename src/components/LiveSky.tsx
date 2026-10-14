@@ -89,7 +89,8 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
   const fixRef = useRef<Fix | null>(null)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
   const starsRef = useRef<{ alt: number; az: number; ra: number; bf: number; tint: string }[]>([])
-  const lastStarKeyRef = useRef('')   // throttle star recompute to ~10-min steps
+  const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps
+  const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
 
   // Recompute the celestial fix when coords change (and hourly via the tick below).
   useEffect(() => {
@@ -102,11 +103,12 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
       moonAlt: moon.altitude, moonAz: moon.azimuth,
       moonPhase: moon.phaseAngle, moonFrac: moon.illumination,
     }
+    staticDirtyRef.current = true   // sun/moon/sky moved → repaint the static layer next frame
     // Continuum: project the real bright-star catalogue (BSC via the xengine's starAltAz →
     // Horizon) to local alt/az at this hour, keeping what's above the horizon. bf is a 0..1
     // brightness factor from real magnitude. Throttled to ~10-min steps so Play doesn't
     // recompute ~1100 positions every bucket. (Skipped in Imagined/Classic.)
-    const starKey = alive ? `${Math.round(when.getTime() / 6e5)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
+    const starKey = alive ? `${Math.round(when.getTime() / 9e5)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
     if (starKey !== lastStarKeyRef.current) {
       lastStarKeyRef.current = starKey
       starsRef.current = alive
@@ -318,6 +320,9 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     // PER FRAME: only the transparent rain layer is cleared + redrawn (+ lightning).
     // The sky beneath is untouched, so a frame costs a clear + thin strokes, nothing more.
     function frame(now: number) {
+      // Repaint the static sky layer only when the celestial fix changed (scrub), not
+      // every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
+      if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
       ctx.clearRect(0, 0, W, H)
       // Living sky (Continuum): clouds drift and stars twinkle on the animated layer
       // every frame — alive when idle, not just while scrubbing. A continuous
@@ -335,12 +340,13 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
           const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
           for (const c of clouds) {
-            c.x += c.spd * 0.0004   // slow drift across the sky
+            c.x += c.spd * 0.004   // drift across the sky (visible when idle, not just on Play)
+            const co = c.o * (0.82 + 0.18 * Math.sin(t * 0.3 + c.x * 11))   // gentle billow
             const x = ((c.x % 1.3) - 0.15) * W + ax * 22 * DPR
             const y = c.y * H * 0.55 + ay * 12 * DPR
             const rr = c.r
             const base = ctx.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
-            base.addColorStop(0, `rgba(${dark},${c.o})`); base.addColorStop(1, `rgba(${dark},0)`)
+            base.addColorStop(0, `rgba(${dark},${co})`); base.addColorStop(1, `rgba(${dark},0)`)
             ctx.fillStyle = base; ctx.beginPath(); ctx.arc(x, y + rr * 0.15, rr, 0, 7); ctx.fill()
             const lx = x + (src.x - x) * 0.1, ly = y - rr * 0.22
             const crown = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr * 0.8)
@@ -414,7 +420,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     raf = requestAnimationFrame(frame)
 
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [current, lat, lon, time, alive])
+  }, [current, lat, lon, alive])
 
   return (
     <>

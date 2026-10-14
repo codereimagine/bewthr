@@ -110,7 +110,7 @@ export function ContinuumView({ hourly, placeName, onOpenPlaces, onOpenSettings 
   const tempRef = useRef<HTMLSpanElement>(null)
   const posRef = useRef(0)
   const skyBucketRef = useRef(-1)
-  const STEP_MS = 1400                        // playback: ms per hour (constant-speed glide)
+  const STEP_MS = 2500                        // playback: ms per hour (~60s for the full day)
 
   const stopPlay = () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } setPlaying(false) }
   useEffect(() => stopPlay, [])
