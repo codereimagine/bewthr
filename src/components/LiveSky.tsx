@@ -220,6 +220,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
     resize()
 
     let raf = 0
+    let prevNow = 0   // for frame-rate-independent motion (correct at 60 AND 120fps)
     let flash = 0
     let lastBolt = 0
 
@@ -323,6 +324,9 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
       // Repaint the static sky layer only when the celestial fix changed (scrub), not
       // every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
       if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
+      // Frame-rate-independent step: 1.0 at 60fps, 0.5 at 120fps (clamped for tab-switch gaps).
+      const fr = (prevNow ? Math.min(50, now - prevNow) : 16.7) / 16.7
+      prevNow = now
       ctx.clearRect(0, 0, W, H)
       // Living sky (Continuum): clouds drift and stars twinkle on the animated layer
       // every frame — alive when idle, not just while scrubbing. A continuous
@@ -340,7 +344,7 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
           const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
           const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
           for (const c of clouds) {
-            c.x += c.spd * 0.004   // drift across the sky (visible when idle, not just on Play)
+            c.x += c.spd * 0.004 * fr   // drift across the sky (visible when idle, not just on Play)
             const co = c.o * (0.82 + 0.18 * Math.sin(t * 0.3 + c.x * 11))   // gentle billow
             const x = ((c.x % 1.3) - 0.15) * W + ax * 22 * DPR
             const y = c.y * H * 0.55 + ay * 12 * DPR
@@ -398,8 +402,8 @@ export function LiveSky({ current, time, alive = false }: LiveSkyProps) {
         const slant = bucket === 'storm' ? 0.3 * DPR : 0
         if (!snowy) ctx!.beginPath()
         for (const d of drops) {
-          if (snowy) { ctx!.beginPath(); ctx!.arc(d.x, d.y, d.l, 0, 7); ctx!.fill(); d.y += d.s * DPR; d.x += Math.sin(d.y * 0.02) * 0.5 }
-          else { ctx!.moveTo(d.x, d.y); ctx!.lineTo(d.x - slant * d.l, d.y + d.l); d.y += d.s * DPR; d.x -= slant * d.s * DPR * 0.6 }
+          if (snowy) { ctx!.beginPath(); ctx!.arc(d.x, d.y, d.l, 0, 7); ctx!.fill(); d.y += d.s * DPR * fr; d.x += Math.sin(d.y * 0.02) * 0.5 * fr }
+          else { ctx!.moveTo(d.x, d.y); ctx!.lineTo(d.x - slant * d.l, d.y + d.l); d.y += d.s * DPR * fr; d.x -= slant * d.s * DPR * 0.6 * fr }
           if (d.y > H) { d.y = -20; d.x = Math.random() * W }
         }
         if (!snowy) ctx!.stroke()
