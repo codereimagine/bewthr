@@ -119,33 +119,81 @@ function drawMoon(
   frac: number, phase: number, night: boolean,
 ) {
   const waxing = phase < 180
-  // Soft outer glow (the moon sits in a faint halo).
-  const glow = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 3.5)
-  glow.addColorStop(0, `rgba(255,250,235,${night ? 0.3 : 0.1})`)
+  // Soft outer glow.
+  const glow = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 3.2)
+  glow.addColorStop(0, `rgba(246,244,232,${night ? 0.26 : 0.09})`)
   glow.addColorStop(1, 'transparent')
-  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, r * 3.5, 0, 7); ctx.fill()
-  // Warm body gradient — highlight offset toward the SUNLIT limb so it reads as a 3D sphere.
-  const hx = cx + (waxing ? r * 0.38 : -r * 0.38), hy = cy - r * 0.22
-  const body = ctx.createRadialGradient(hx, hy, r * 0.1, cx, cy, r)
-  if (night) { body.addColorStop(0, '#fff8ea'); body.addColorStop(0.62, '#e9e2c6'); body.addColorStop(1, '#ada785') }
-  else { body.addColorStop(0, '#f3f6fc'); body.addColorStop(0.7, '#dde5f1'); body.addColorStop(1, '#b7c1d6') }
-  const shadeCol = night ? 'rgba(9,13,28,0.94)' : 'rgba(150,165,195,0.8)'
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, r * 3.2, 0, 7); ctx.fill()
+
   ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.clip()
-  // Unlit base, then paint the lit hemisphere warm, then the phase terminator ellipse
-  // (same proven 2-ellipse geometry as before, now filled with the sphere gradient).
-  ctx.fillStyle = shadeCol; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r)
-  const moff = (1 - 2 * frac) * r
-  ctx.fillStyle = body; ctx.beginPath(); ctx.rect(waxing ? cx : cx - 2 * r, cy - r, 2 * r, 2 * r); ctx.fill()
-  ctx.fillStyle = frac < 0.5 ? shadeCol : body; ctx.beginPath(); ctx.ellipse(cx, cy, Math.abs(moff), r, 0, 0, 7); ctx.fill()
-  // Maria — a few stable soft seas for texture (negligible over the dark shadow side).
-  ctx.fillStyle = night ? 'rgba(120,118,98,0.18)' : 'rgba(150,160,185,0.14)'
-  for (const [mx, my, ms] of [[-0.26, -0.18, 0.4], [0.22, 0.12, 0.33], [-0.04, 0.36, 0.28], [0.34, -0.3, 0.22]] as const) {
-    ctx.beginPath(); ctx.ellipse(cx + mx * r, cy + my * r, ms * r, ms * r * 0.78, 0.4, 0, 7); ctx.fill()
+
+  // 1) Regolith base — pale warm-grey, highlight toward the sunlit limb (a lit 3D sphere).
+  const hx = cx + (waxing ? r * 0.32 : -r * 0.32), hy = cy - r * 0.28
+  const body = ctx.createRadialGradient(hx, hy, r * 0.1, cx, cy, r * 1.04)
+  if (night) { body.addColorStop(0, '#f2efe4'); body.addColorStop(0.55, '#d8d2c2'); body.addColorStop(1, '#b0aa98') }
+  else { body.addColorStop(0, '#f4f7fc'); body.addColorStop(0.6, '#dbe2ee'); body.addColorStop(1, '#b4bed2') }
+  ctx.fillStyle = body; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r)
+
+  // 2) Maria — the real nearside seas at their true relative positions (the "man in the moon").
+  const seaDark = night ? '120,114,94' : '150,160,185'
+  const maria: ReadonlyArray<readonly [number, number, number, number]> = [
+    [-0.32, -0.34, 0.42, 0.95], // Imbrium
+    [0.08, -0.30, 0.27, 0.34],  // Serenitatis
+    [0.32, -0.05, 0.26, 0.30],  // Tranquillitatis
+    [0.60, -0.22, 0.14, 0.18],  // Crisium
+    [0.46, 0.22, 0.20, 0.26],   // Fecunditatis
+    [0.30, 0.44, 0.15, 0.17],   // Nectaris
+    [-0.54, 0.02, 0.30, 0.52],  // Procellarum
+    [-0.22, 0.44, 0.20, 0.18],  // Nubium
+    [-0.46, 0.38, 0.15, 0.16],  // Humorum
+  ]
+  for (const [mx, my, rx, ry] of maria) {
+    const g = ctx.createRadialGradient(cx + mx * r, cy + my * r, 0, cx + mx * r, cy + my * r, rx * r)
+    g.addColorStop(0, `rgba(${seaDark},0.5)`); g.addColorStop(0.65, `rgba(${seaDark},0.34)`); g.addColorStop(1, 'transparent')
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx + mx * r, cy + my * r, rx * r, ry * r, 0.25, 0, 7); ctx.fill()
   }
+
+  // 3) Craters — bright ejecta rim + darker floor at real positions (Tycho keeps a ray halo).
+  const craters: ReadonlyArray<readonly [number, number, number, number]> = [
+    [-0.06, 0.60, 0.085, 1.0],  // Tycho
+    [-0.20, 0.02, 0.05, 0.75],  // Copernicus
+    [-0.44, 0.06, 0.035, 0.6],  // Kepler
+    [-0.50, -0.20, 0.03, 0.85], // Aristarchus
+    [0.18, 0.5, 0.03, 0.5], [0.4, -0.42, 0.028, 0.5], [-0.28, 0.3, 0.03, 0.45],
+  ]
+  for (const [mx, my, cr, br] of craters) {
+    const x = cx + mx * r, y = cy + my * r, rad = cr * r
+    if (br >= 1) { // Tycho ray halo
+      const h = ctx.createRadialGradient(x, y, rad, x, y, rad * 4.5)
+      h.addColorStop(0, 'rgba(248,246,236,0.22)'); h.addColorStop(1, 'transparent')
+      ctx.fillStyle = h; ctx.beginPath(); ctx.arc(x, y, rad * 4.5, 0, 7); ctx.fill()
+    }
+    ctx.fillStyle = 'rgba(96,92,76,0.45)'; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill()
+    ctx.strokeStyle = `rgba(248,246,236,${0.55 * br})`; ctx.lineWidth = Math.max(0.5, rad * 0.4)
+    ctx.beginPath(); ctx.arc(x, y, rad * 0.88, 0, 7); ctx.stroke()
+  }
+
+  // 4) Limb darkening — rounds the lit sphere toward the edge.
+  const limb = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r)
+  limb.addColorStop(0, 'transparent'); limb.addColorStop(1, night ? 'rgba(16,14,26,0.52)' : 'rgba(70,80,110,0.4)')
+  ctx.fillStyle = limb; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill()
+
+  // 5) Phase shadow — darken the UNLIT lune, kept semi-opaque so the surface shows faintly
+  //    through it (earthshine). evenodd: full disc MINUS the lit lune = the shadow region.
+  const moff = (1 - 2 * frac) * r
+  ctx.fillStyle = night ? 'rgba(5,8,18,0.9)' : 'rgba(150,165,195,0.82)'
+  ctx.beginPath()
+  ctx.rect(cx - r, cy - r, 2 * r, 2 * r)
+  ctx.moveTo(cx, cy - r)
+  ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, !waxing)       // lit limb (right if waxing)
+  ctx.ellipse(cx, cy, Math.abs(moff), r, 0, Math.PI / 2, -Math.PI / 2, waxing ? moff < 0 : moff > 0)
+  ctx.closePath()
+  ctx.fill('evenodd')
+
   ctx.restore()
   // Crisp limb rim.
-  ctx.strokeStyle = night ? 'rgba(255,250,235,0.16)' : 'rgba(220,230,245,0.28)'
-  ctx.lineWidth = Math.max(0.5, r * 0.03); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke()
+  ctx.strokeStyle = night ? 'rgba(246,244,232,0.14)' : 'rgba(220,230,245,0.26)'
+  ctx.lineWidth = Math.max(0.5, r * 0.025); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke()
 }
 
 // CLOUD POOL — a fixed set of clouds seeded ONCE. A condition change doesn't re-seed/reshuffle;
@@ -409,7 +457,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           // washed out); crisp warm moon only at night. Tracks its true az/alt like the sun.
           const sa = fix.sunAlt
           octx.globalAlpha = sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)
-          drawMoon(octx, pp.x, pp.y, 24 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
+          drawMoon(octx, pp.x, pp.y, 30 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
           octx.globalAlpha = 1
         }
       }
@@ -564,7 +612,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           if (pp.vis) {
             const sa = fix.sunAlt
             ctx.globalAlpha = sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)
-            drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 24 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
+            drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 30 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
             ctx.globalAlpha = 1
           }
         }
