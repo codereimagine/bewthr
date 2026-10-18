@@ -2,7 +2,7 @@
 @import "./fonts.css";
 
 :root {
-  --bg: #0a0a0a;
+  --bg: #05091a;   /* deep sky-navy (matches the sky top + theme-color), so the iOS translucent status-bar strip blends instead of showing a black bar — same approach as starnav's #04060F */
   --bg-grid: #111;
   --surface: #141414;
   --surface-2: #1c1c1c;
