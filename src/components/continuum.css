@@ -9,7 +9,7 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: calc(22px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   color: #f5f7fb;
   font-family: var(--display, 'Space Grotesk', system-ui, sans-serif);
@@ -20,7 +20,7 @@
    Both a React class AND a DOM-driven :has() rule, so the push-down applies the
    instant the banner mounts, independent of React timing. */
 .cont--banner,
-.cont:has(~ .cont-update-host .update-banner) { padding-top: 132px; }
+.cont:has(~ .cont-update-host .update-banner) { padding-top: calc(132px + env(safe-area-inset-top, 0px)); }
 
 .cont .mono { font-family: var(--mono, 'JetBrains Mono', monospace); }
 .cont .lbl { font-family: var(--mono, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.18em; color: #aab3c7; }
