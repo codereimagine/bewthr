@@ -39,7 +39,7 @@ $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
 
 ## 🌤️ What is it?
 
-bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. The moon shows its real shape for tonight. If it's raining outside, rain falls on the screen. It's the weather you can just $\textcolor{#22d3ee}{\textsf{look at}}$.
+bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. The moon shows its real shape for tonight — the actual seas and craters, lit from the true sun angle. If it's raining outside, rain falls on the screen. It's the weather you can just $\textcolor{#22d3ee}{\textsf{look at}}$.
 
 No app store, no account, nothing to sign up for. Open the link and it works. Like it? Add it to your home screen like any other app.
 
@@ -84,9 +84,9 @@ npm test           # unit tests
 <details><summary><b>🔧 Under the hood</b></summary>
 
 - **Weather:** keyless — Open-Meteo with a MET.no fallback, plus NWS alerts. No API keys.
-- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ.
+- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ. The moon is a lit sphere carrying its real nearside maria and craters at the correct phase; the night sky draws the full Yale Bright Star Catalogue (~1,100 stars), culled to those actually above your horizon, so the count is astronomically true.
 - **Privacy:** precise coordinates live in on-device storage; egress is rounded (≈1 km "surrounding" by default, selectable to ≈11 km "general", or exact). If browser GPS is blocked, it falls back to approximate network location — no prompt required.
-- **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion.
+- **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion. Installed, the sky runs edge-to-edge and fills the whole display (a transparent status bar, so the stars show through the top); in Continuum it gains depth — stars, sun and moon parallax with device tilt.
 - **Accessibility:** WCAG-audited contrast over the animated sky; dark / light / night / auto themes; reduced-motion support.
 - **Stack:** React 19 · TypeScript · Vite · Canvas 2D · `astronomy-engine` · Zustand · vite-plugin-pwa
 
