@@ -1,5 +1,5 @@
 import { useSettings } from '../store/settings'
-import { getWeatherIcon, getCondition } from '../lib/weather'
+import { getWeatherIcon, getCondition, getWindUnitLabel } from '../lib/weather'
 import type { WeatherResponse } from '../lib/openMeteo'
 import { HeroAtmosphere } from './atmosphere/HeroAtmosphere'
 import './WeatherHero.css'
@@ -7,10 +7,6 @@ import './WeatherHero.css'
 function convertPressure(hPa: number, unit: string): string {
   if (unit === 'inHg') return (hPa * 0.02953).toFixed(2)
   return String(Math.round(hPa))
-}
-
-function getWindUnitLabel(unit: string): string {
-  return { mph: 'mph', kmh: 'km/h', ms: 'm/s', kn: 'kn' }[unit] || ''
 }
 
 interface WeatherHeroProps {

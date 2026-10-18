@@ -110,3 +110,7 @@ export function getCondition(code: number): string {
   }
   return conditions[code] || 'Unknown'
 }
+
+export function getWindUnitLabel(unit: string): string {
+  return { mph: 'mph', kmh: 'km/h', ms: 'm/s', kn: 'kn' }[unit] || ''
+}

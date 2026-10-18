@@ -3,6 +3,8 @@ import { LiveSky, type PlayClock } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
 import { useGeo } from '../store/geo'
+import { useSettings } from '../store/settings'
+import { getWindUnitLabel } from '../lib/weather'
 import { usePwaUpdate } from '../lib/PwaUpdate'
 import { AlertBanner } from './AlertBanner'
 import type { NWSAlert } from '../lib/nws'
@@ -100,6 +102,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const requestLocation = useGeo((s) => s.requestLocation)
   const locate = () => { if (!geoEnabled) setGeoEnabled(true); else requestLocation() }
   const bannerVisible = usePwaUpdate().bannerVisible   // drop the header below the update banner when shown
+  const windUnitLabel = ' ' + getWindUnitLabel(useSettings((s) => s.windUnit))  // honour the unit setting (was hard-coded mph)
 
   const hours = useMemo(() => buildHours(hourly), [hourly])
   const len = hours.length
@@ -262,7 +265,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
       </section>
 
       <div className="cont-metrics">
-        {([['RAIN', h.rain, '%', h.rain], ['WIND', h.wind, ' mph', Math.min(100, h.wind * 4)], ['CLOUD', h.cloud, '%', h.cloud]] as const).map(([label, val, unit, pct]) => (
+        {([['RAIN', h.rain, '%', h.rain], ['WIND', h.wind, windUnitLabel, Math.min(100, h.wind * 4)], ['CLOUD', h.cloud, '%', h.cloud]] as const).map(([label, val, unit, pct]) => (
           <div className="cont-metric" key={label}>
             <div className="cont-metric-head">
               <span className="lbl">{label}</span>
