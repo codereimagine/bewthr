@@ -64,9 +64,9 @@ Most apps want your account, your data, and your attention. Every codereimagine 
 ## 🧭 How to use it
 
 1. **Open it** — tap [codereimagine.github.io/bewthr](https://codereimagine.github.io/bewthr/). No install, no account, nothing to sign up for.
-2. **Set your place** — allow location once (the ◎ button), or tap **+** to add a city by name. Your exact spot never leaves your device.
+2. **Set your place** — allow location once (the target button, top right), or tap **+** to add a city by name. Your exact spot never leaves your device.
 3. **Read the sky** — the background *is* the real sky for your place and time; the readout gives you the temperature, the condition, and the hour.
-4. **Switch the look** — tap **⚙ → Mode**: $\textcolor{#22d3ee}{\textsf{Imagined}}$ (the full living sky), $\textcolor{#d946ef}{\textsf{Continuum}}$ (scrub the day), or $\textcolor{#f5a623}{\textsf{Classic}}$ (a clean instrument).
+4. **Switch the look** — tap **⚙ → Accent**: $\textcolor{#22d3ee}{\textsf{Imagined}}$ (the full living sky), $\textcolor{#d946ef}{\textsf{Continuum}}$ (scrub the day), or $\textcolor{#f5a623}{\textsf{Classic}}$ (a clean instrument).
 5. **Play the day** — in Continuum, drag the 24-hour strip or hit **▶ Play** to watch sunrise → midnight glide by; **NOW** snaps back to the present.
 6. **Keep it** — add it to your home screen and it works offline, even on a weak signal.
 
