@@ -24,17 +24,18 @@
 }
 
 :root.light {
-  /* toned down from stark white to a soft cool grey-white */
-  --bg: #e6e8ef;
-  --bg-grid: #dde0e9;
-  --surface: #f2f3f8;
-  --surface-2: #e9ebf2;
-  --surface-3: #dfe2ec;
-  --border: #d0d4df;
-  --border-bright: #bcc2d1;
+  /* toned down from stark white to a soft cool grey (one more step down 2026-10-19:
+     the previous palette read too bright; faint text darkened to keep contrast) */
+  --bg: #d9dce5;
+  --bg-grid: #d0d4de;
+  --surface: #e4e7ee;
+  --surface-2: #dbdee7;
+  --surface-3: #d1d5e0;
+  --border: #c3c8d4;
+  --border-bright: #afb6c6;
   --text: #14161d;
-  --text-dim: #545a67;
-  --text-faint: #8b93a3;
+  --text-dim: #4d5361;
+  --text-faint: #767e8f;
   --accent-soft: rgba(255, 102, 0, 0.05);
 }
 

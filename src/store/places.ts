@@ -22,6 +22,9 @@ interface PlacesState {
   addPlace: (place: Place) => void
   removePlace: (id: string) => void
   selectPlace: (id: string) => void
+  /** Back to "current location": no city active (saved cities are kept). The
+   *  locate button calls this so the GPS fix drives the weather again. */
+  clearActive: () => void
 }
 
 export const usePlaces = create<PlacesState>()((setState, getState) => ({
@@ -71,5 +74,10 @@ export const usePlaces = create<PlacesState>()((setState, getState) => ({
   selectPlace: (id) => {
     setState({ activePlaceId: id })
     set(ACTIVE_KEY, id)
+  },
+
+  clearActive: () => {
+    setState({ activePlaceId: null })
+    del(ACTIVE_KEY)
   },
 }))

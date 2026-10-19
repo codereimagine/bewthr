@@ -3,6 +3,7 @@ import { LiveSky, type PlayClock } from './LiveSky'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
 import { useGeo } from '../store/geo'
+import { usePlaces } from '../store/places'
 import { useSettings } from '../store/settings'
 import { getWindUnitLabel } from '../lib/weather'
 import { usePwaUpdate } from '../lib/PwaUpdate'
@@ -100,7 +101,9 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const geoEnabled = useGeo((s) => s.enabled)
   const setGeoEnabled = useGeo((s) => s.setEnabled)
   const requestLocation = useGeo((s) => s.requestLocation)
-  const locate = () => { if (!geoEnabled) setGeoEnabled(true); else requestLocation() }
+  const clearActivePlace = usePlaces((s) => s.clearActive)
+  // deselect any picked city too — a picked city otherwise always wins over GPS
+  const locate = () => { clearActivePlace(); if (!geoEnabled) setGeoEnabled(true); else requestLocation() }
   const bannerVisible = usePwaUpdate().bannerVisible   // drop the header below the update banner when shown
   const windUnitLabel = ' ' + getWindUnitLabel(useSettings((s) => s.windUnit))  // honour the unit setting (was hard-coded mph)
 

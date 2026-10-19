@@ -61,6 +61,9 @@
   --surface: rgba(18, 22, 34, 0.42);
   --surface-2: rgba(24, 28, 42, 0.42);
   --surface-3: rgba(32, 38, 56, 0.42);
+  /* The page background follows the dark sky too — otherwise Light theme leaves a
+     light --bg under full-screen views (search) that carry this light text. */
+  --bg: #05091a;
   --bg-grid: transparent;
   color-scheme: dark;
 }
@@ -120,11 +123,19 @@
 
 /* Modals (Settings, Places) must be SOLID in Imagined — the translucent sky
    surface let the page behind bleed through and made them unreadable. */
-:root[data-accent='imagined'] .modal {
+:root[data-accent='imagined'] .modal,
+:root[data-accent='continuum'] .modal {
   background: #0b0f1a !important;
 }
-:root[data-accent='imagined'] .modal-close {
+:root[data-accent='imagined'] .modal-close,
+:root[data-accent='continuum'] .modal-close {
   background: rgba(255, 255, 255, 0.08) !important;
+}
+/* While a sheet is open (see Modal.css), the bare canvas strip below the viewport
+   takes the sheet's colour so it blends instead of showing the page background. */
+:root[data-accent='imagined'].modal-open,
+:root[data-accent='continuum'].modal-open {
+  background: #0b0f1a !important;
 }
 
 /* Light theme brightens the sky, so give the panels a touch more backing to keep

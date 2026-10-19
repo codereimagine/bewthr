@@ -34,6 +34,7 @@ let savedScrollY = 0
 // touches as page scroll.
 function lockBody() {
   savedScrollY = window.scrollY
+  document.documentElement.classList.add('modal-open')
   document.body.style.position = 'fixed'
   document.body.style.top = `-${savedScrollY}px`
   document.body.style.left = '0'
@@ -42,6 +43,7 @@ function lockBody() {
 }
 
 function unlockBody() {
+  document.documentElement.classList.remove('modal-open')
   document.body.style.position = ''
   document.body.style.top = ''
   document.body.style.left = ''

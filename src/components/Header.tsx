@@ -1,4 +1,5 @@
 import { useGeo } from '../store/geo'
+import { usePlaces } from '../store/places'
 import './Header.css'
 
 interface HeaderProps {
@@ -11,10 +12,13 @@ export function Header({ onOpenPlaces, onOpenSettings }: HeaderProps) {
   const enabled = useGeo((s) => s.enabled)
   const setEnabled = useGeo((s) => s.setEnabled)
   const requestLocation = useGeo((s) => s.requestLocation)
+  const clearActivePlace = usePlaces((s) => s.clearActive)
 
   // One-tap locate: turn location on if it's off (which acquires), else re-acquire.
   // The tap is the user gesture browsers require; falls back to network if GPS is blocked.
+  // It also deselects any picked city — a picked city otherwise always wins over GPS.
   const locate = () => {
+    clearActivePlace()
     if (!enabled) setEnabled(true)
     else requestLocation()
   }

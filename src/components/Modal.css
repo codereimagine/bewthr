@@ -1,3 +1,10 @@
+/* While a sheet is open the page is locked (body position:fixed — see Modal.tsx),
+   which on iOS can expose a strip of bare canvas below the small viewport. Paint
+   that canvas the sheet's colour so the sheet reads as reaching the screen edge. */
+html.modal-open {
+  background: var(--surface);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
