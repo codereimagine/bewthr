@@ -4,7 +4,7 @@
 
 ### The weather, shown as a real, living sky.
 
-$\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ · $\textcolor{#f5a623}{\textsf{continuity}}$
+$\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ · $\textcolor{#f5a623}{\textsf{continuum}}$
 
 *No accounts, no sign-up, no ads — and your exact location never leaves your device.*
 
