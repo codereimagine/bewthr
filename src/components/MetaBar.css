@@ -10,6 +10,42 @@
   padding: 0 4px;
 }
 
+/* A picked city: CITY time │ HERE your-time — both clocks, the divider and the
+   tags keep the city's time from ever reading as the phone's own. */
+.meta-status { flex: none; white-space: nowrap; }
+.meta-time {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+.meta-city {
+  color: var(--accent);
+  min-width: 0;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 0.55em;
+}
+.meta-clock { flex: none; }
+.meta-sep {
+  flex: none;
+  display: inline-block;
+  width: 1px;
+  height: 0.95em;
+  margin: 0 0.6em;
+  background: currentColor;
+  opacity: 0.45;
+}
+.meta-here { flex: none; opacity: 0.75; margin-right: 0.45em; }
+.meta-local { opacity: 0.85; }
+/* Narrow phones with a city picked: keep the status dot, drop its label, so the
+   city's full name and both clocks fit without truncating. */
+@media (max-width: 459px) {
+  .meta-bar--city .meta-status-label { display: none; }
+}
+
 .status-dot {
   width: 6px;
   height: 6px;

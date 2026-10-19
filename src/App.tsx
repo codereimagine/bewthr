@@ -26,6 +26,7 @@ import './App.css'
 function App() {
   const theme = useSettings((s) => s.theme)
   const loadPlaces = usePlaces((s) => s.loadPlaces)
+  const activePlaceId = usePlaces((s) => s.activePlaceId)
   const initGeo = useGeo((s) => s.init)
   const [placesViewOpen, setPlacesViewOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -83,7 +84,7 @@ function App() {
         onOpenPlaces={() => setPlacesViewOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <MetaBar />
+      <MetaBar city={activePlaceId ? placeName : null} timeZone={weather?.hourly?.timeZone} />
       <main className="app-main">
       <ErrorBoundary>
         <WeatherHero

@@ -2,31 +2,57 @@ import { useState, useEffect } from 'react'
 import { useSettings } from '../store/settings'
 import './MetaBar.css'
 
-export function MetaBar() {
+interface MetaBarProps {
+  /** A picked city (not your geolocated spot): the clock shows ITS local time,
+   *  tagged with the city name and set apart by a divider. null = your time. */
+  city?: string | null
+  /** The city's IANA zone (from the forecast). Until it's known the clock shows
+   *  --:-- rather than a wrong (device) time. */
+  timeZone?: string
+}
+
+export function MetaBar({ city = null, timeZone }: MetaBarProps) {
   const timeFormat = useSettings((s) => s.timeFormat)
-  const [time, setTime] = useState('')
+  const [cityTime, setCityTime] = useState('')
+  const [localTime, setLocalTime] = useState('')
 
   useEffect(() => {
-    function update() {
-      const d = new Date()
+    function fmt(d: Date, zone?: string): string {
       const opts: Intl.DateTimeFormatOptions =
         timeFormat === '24'
-          ? { hour: '2-digit', minute: '2-digit', hour12: false }
-          : { hour: 'numeric', minute: '2-digit', hour12: true }
-      setTime(d.toLocaleTimeString(timeFormat === '24' ? 'en-GB' : 'en-US', opts))
+          ? { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: zone }
+          : { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: zone }
+      return d.toLocaleTimeString(timeFormat === '24' ? 'en-GB' : 'en-US', opts)
+    }
+    function update() {
+      const d = new Date()
+      setLocalTime(fmt(d))
+      // a picked city's zone arrives with its forecast — never show a wrong time meanwhile
+      setCityTime(city && timeZone ? fmt(d, timeZone) : '')
     }
     update()
     const id = setInterval(update, 30000)
     return () => clearInterval(id)
-  }, [timeFormat])
+  }, [timeFormat, city, timeZone])
 
   return (
-    <div className="meta-bar">
-      <div>
+    <div className={`meta-bar${city ? ' meta-bar--city' : ''}`}>
+      <div className="meta-status">
         <span className="status-dot" />
-        SYS.ONLINE
+        <span className="meta-status-label">SYS.ONLINE</span>
       </div>
-      <div className="meta-time">{time || '--:--'}</div>
+      {city ? (
+        // CITY time │ HERE (your device) time — both clocks, clearly separated
+        <div className="meta-time" aria-label={`${city} ${cityTime || 'loading'}, your time ${localTime}`}>
+          <span className="meta-city">{city}</span>
+          <span className="meta-clock">{cityTime || '--:--'}</span>
+          <span className="meta-sep" aria-hidden="true" />
+          <span className="meta-here">here</span>
+          <span className="meta-clock meta-local">{localTime || '--:--'}</span>
+        </div>
+      ) : (
+        <div className="meta-time">{localTime || '--:--'}</div>
+      )}
     </div>
   )
 }
