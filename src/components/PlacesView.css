@@ -12,6 +12,14 @@
   color: var(--text);
   display: flex;
   flex-direction: column;
+  /* Respect iOS safe-area insets (same as uptyme/starnav PlacesView). bewthr
+     runs full-bleed under a translucent status bar, so without this the
+     header's back/close buttons sit under the clock / Dynamic Island. */
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
   /* Hidden state: faded out + pointer-events:none so the off-screen
      view doesn't intercept taps under it. */
   opacity: 0;
