@@ -63,10 +63,13 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
   // shrinks when iOS / Android keyboards appear (CSS dvh does not account
   // for the keyboard). We apply max-height + bottom inline so search
   // results stay reachable without dismissing the keyboard first.
+  // Only while OPEN: a closed sheet hides via translateY(100%) from bottom:0,
+  // so lifting `bottom` while closed makes it peek above the screen edge
+  // (over Continuum's play button) whenever visualViewport shrinks.
   useEffect(() => {
     if (!modalRef.current) return
     if (typeof window === 'undefined') return
-    if (vv.height > 0 && vv.height < window.innerHeight - 1) {
+    if (open && vv.height > 0 && vv.height < window.innerHeight - 1) {
       const maxH = Math.round(vv.height * 0.85)
       const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
       modalRef.current.style.maxHeight = `${maxH}px`
@@ -75,7 +78,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
       modalRef.current.style.maxHeight = ''
       modalRef.current.style.bottom = ''
     }
-  }, [vv.height, vv.offsetTop])
+  }, [open, vv.height, vv.offsetTop])
 
   useEffect(() => {
     if (!open) return
