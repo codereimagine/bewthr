@@ -30,9 +30,26 @@ export function MetaBar({ city = null, timeZone }: MetaBarProps) {
       // a picked city's zone arrives with its forecast — never show a wrong time meanwhile
       setCityTime(city && timeZone ? fmt(d, timeZone) : '')
     }
-    update()
-    const id = setInterval(update, 30000)
-    return () => clearInterval(id)
+    // Tick exactly on the minute (a fixed 30 s interval lagged the minute change by
+    // up to 30 s), and refresh at once when the app comes back to the foreground —
+    // phones pause timers in the background.
+    let t: ReturnType<typeof setTimeout> | undefined
+    const tick = () => {
+      update()
+      const now = new Date()
+      t = setTimeout(tick, 60000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 20)
+    }
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (t) clearTimeout(t)
+      tick()
+    }
+    tick()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      if (t) clearTimeout(t)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [timeFormat, city, timeZone])
 
   return (
