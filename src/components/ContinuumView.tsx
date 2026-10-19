@@ -69,7 +69,7 @@ function buildHours(h: HourlyWeather): Hour[] {
     const n = start + i
     const code = h.weather_code[n] ?? 0
     const isDay = h.is_day[n] ?? 1
-    const label = new Date(h.time[n]).toLocaleTimeString([], { hour: 'numeric' }).replace(/:00/, '').replace(/\s+/g, ' ').toUpperCase()
+    const label = new Date(h.time[n]).toLocaleTimeString([], { hour: 'numeric', timeZone: h.timeZone }).replace(/:00/, '').replace(/\s+/g, ' ').toUpperCase()
     out.push({
       label,
       temp: Math.round(h.temperature_2m[n] ?? 0),

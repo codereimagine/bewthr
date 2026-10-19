@@ -5,12 +5,13 @@ import { wxAccentLight } from '../lib/weatherTheme'
 import type { HourlyWeather } from '../lib/openMeteo'
 import './HourlyStrip.css'
 
-function formatTime(iso: string, timeFormat: string): string {
+// timeZone = the place's IANA zone, so a picked city shows ITS hours.
+function formatTime(iso: string, timeFormat: string, timeZone?: string): string {
   const d = new Date(iso)
   if (timeFormat === '24') {
-    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone })
   }
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }).replace(' ', '').toLowerCase()
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true, timeZone }).replace(' ', '').toLowerCase()
 }
 
 interface HourlyStripProps {
@@ -24,8 +25,9 @@ export function HourlyStrip({ hourly }: HourlyStripProps) {
 
   if (!showHourly) return null
 
-  const now = new Date()
-  const startIdx = hourly.time.findIndex((t) => new Date(t) >= now)
+  // "Now" = the NEAREST hour — the same rule as Continuum, so both views agree.
+  const nowMs = new Date().getTime()
+  const startIdx = hourly.time.findIndex((t) => new Date(t).getTime() >= nowMs - 30 * 60 * 1000)
   if (startIdx === -1) return null
 
   const hours = hourly.time.slice(startIdx, startIdx + 24)
@@ -49,7 +51,7 @@ export function HourlyStrip({ hourly }: HourlyStripProps) {
                 : undefined}
             >
               <div className="hour-time">
-                {i === 0 ? 'Now' : formatTime(hourly.time[idx], timeFormat)}
+                {i === 0 ? 'Now' : formatTime(hourly.time[idx], timeFormat, hourly.timeZone)}
               </div>
               <div className="hour-icon">
                 {getWeatherIcon(hourly.weather_code[idx], hourly.is_day[idx])}

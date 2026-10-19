@@ -4,6 +4,12 @@
 html.modal-open {
   background: var(--surface);
 }
+/* The locked body (position:fixed, full content height) keeps painting its own
+   --bg past the viewport bottom, on top of that canvas — clear it while open so the
+   strip shows the sheet colour, not the page background. */
+html.modal-open body {
+  background: transparent !important;
+}
 
 .modal-backdrop {
   position: fixed;

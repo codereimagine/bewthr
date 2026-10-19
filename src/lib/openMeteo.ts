@@ -13,7 +13,12 @@ export interface CurrentWeather {
 }
 
 export interface HourlyWeather {
+  /** True UTC instants (ISO). Open-Meteo's place-local strings are converted in
+   *  fetchWeather; MET.no already sends UTC. */
   time: string[]
+  /** IANA zone of the place (Open-Meteo `timezone`) — hour labels use it so a
+   *  picked city shows ITS hours, not the device's. Absent from MET.no. */
+  timeZone?: string
   temperature_2m: number[]
   weather_code: number[]
   is_day: number[]
@@ -57,5 +62,27 @@ export async function fetchWeather(
 
   const res = await fetch(url)
   if (!res.ok) throw new Error('Weather fetch failed')
-  return res.json()
+  const data = (await res.json()) as WeatherResponse & { utc_offset_seconds?: number; timezone?: string }
+  return {
+    ...data,
+    hourly: {
+      ...data.hourly,
+      time: placeLocalToUtcIso(data.hourly.time, data.utc_offset_seconds ?? 0),
+      timeZone: data.timezone,
+    },
+  }
+}
+
+/** With `timezone=auto`, Open-Meteo returns hourly times as the PLACE's local wall
+ *  clock with no zone ("2026-10-20T07:00"). `new Date()` reads such strings in the
+ *  DEVICE's zone, so for a far-away city "now" landed on the wrong hour (Tokyo from
+ *  New York: 13 h off). Convert to true UTC instants with the place's offset; strings
+ *  that already carry a zone (MET.no) pass through. Uses the current offset, so an
+ *  hour after a DST change inside the forecast window can be 1 h off. */
+export function placeLocalToUtcIso(times: string[], offsetSec: number): string[] {
+  return times.map((t) =>
+    /(?:Z|[+-]\d\d:?\d\d)$/i.test(t)
+      ? new Date(t).toISOString()
+      : new Date(Date.parse(`${t}Z`) - offsetSec * 1000).toISOString()
+  )
 }

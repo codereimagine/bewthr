@@ -225,6 +225,21 @@
   margin-bottom: 6px;
 }
 
+/* The tappable part of a saved row: a bare button filling the row up to Delete. */
+.places-view-saved-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-right: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .places-view-saved-name {
   font-size: 14px;
   color: var(--text);

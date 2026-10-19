@@ -25,7 +25,7 @@ interface PlacesViewProps {
 //   view IS the screen, and standard tap handling works on every
 //   platform.
 export function PlacesView({ open, onClose }: PlacesViewProps) {
-  const { places, addPlace, removePlace } = usePlaces()
+  const { places, addPlace, removePlace, selectPlace } = usePlaces()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeocodingResult[]>([])
   const [searchError, setSearchError] = useState(false)
@@ -192,10 +192,18 @@ export function PlacesView({ open, onClose }: PlacesViewProps) {
           ) : (
             places.map((p) => (
               <div key={p.id} className="places-view-saved-row">
-                <div>
+                {/* The row itself goes to the place (previously only Delete was tappable). */}
+                <button
+                  type="button"
+                  className="places-view-saved-pick"
+                  onClick={() => {
+                    selectPlace(p.id)
+                    onClose()
+                  }}
+                >
                   <div className="places-view-saved-name">{p.name}</div>
                   <div className="places-view-saved-region">{p.region}</div>
-                </div>
+                </button>
                 <button
                   type="button"
                   className="places-view-delete"

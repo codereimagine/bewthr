@@ -27,7 +27,9 @@ export function useWeather() {
   const weatherFeed = useMemo<DataFeed<WeatherResponse>>(
     () => ({
       id: `wx:${ctx}`,
-      persistKey: `wx:${ctx}`,
+      // v2: hourly times are now true UTC instants — never reuse a cached reading
+      // stored with the old zone-less place-local strings.
+      persistKey: `wx:v2:${ctx}`,
       refreshMs,
       enabled: coordsReady,
       fetchLive: async () => {
