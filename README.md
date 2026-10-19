@@ -88,6 +88,7 @@ npm test           # unit tests
 - **Privacy:** precise coordinates live in on-device storage; egress is rounded (≈1 km "surrounding" by default, selectable to ≈11 km "general", or exact). If browser GPS is blocked, it falls back to approximate network location — no prompt required.
 - **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion. Installed, the sky runs edge-to-edge and fills the whole display (a transparent status bar, so the stars show through the top); in Continuum it gains depth — the stars and moon parallax with device tilt.
 - **Accessibility:** WCAG-audited contrast over the animated sky; dark / light / night / auto themes; reduced-motion support.
+- **Design study.**
 - **Stack:** React 19 · TypeScript · Vite · Canvas 2D · `astronomy-engine` · Zustand · vite-plugin-pwa
 
 </details>
