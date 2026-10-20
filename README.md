@@ -12,22 +12,22 @@ $\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ ·
 
 $\textcolor{#22d3ee}{\textsf{IMAGINED}}$ — the full living sky
 <p>
-  <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky with the sun over the current conditions" />
-  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky with a crescent moon and stars over the current conditions" />
+  <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky over Tokyo, partly cloudy" />
+  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky over New York with the moon and stars" />
   <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Sky Tonight — the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
 </p>
 
 $\textcolor{#d946ef}{\textsf{CONTINUUM}}$ — scrub or play a full day of sky
 <p>
-  <img src="screenshots/continuum-day.png" width="30%" alt="bewthr Continuum — daytime living sky over New York with a 24-hour scrubber and a Play control" />
+  <img src="screenshots/continuum-day.png" width="30%" alt="bewthr Continuum — daytime sky over New York, scrubbed to late morning, with a 24-hour scrubber and a Play control" />
   <img src="screenshots/continuum-tokyo.png" width="30%" alt="bewthr Continuum — golden-hour sky over Tokyo, scrubbed to late afternoon" />
-  <img src="screenshots/continuum-night.png" width="30%" alt="bewthr Continuum — night living sky with real stars over New York, scrubbed to a late hour" />
+  <img src="screenshots/continuum-night.png" width="30%" alt="bewthr Continuum — night living sky with real stars over New York, right now" />
 </p>
 
 $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
 <p>
   <img src="screenshots/classic-day.png" width="30%" alt="bewthr Classic — clean light-theme instrument view of current conditions, daytime" />
-  <img src="screenshots/classic-night.png" width="30%" alt="bewthr Classic — instrument view at night with a crescent moon" />
+  <img src="screenshots/classic-night.png" width="30%" alt="bewthr Classic — instrument view at night with the moon" />
   <img src="screenshots/classic-sky.png" width="30%" alt="bewthr Classic — Sky Tonight data panel: sun and moon times, planets and constellations" />
 </p>
 
