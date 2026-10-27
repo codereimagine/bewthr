@@ -66,6 +66,14 @@
 .cont-unit { font-size: 13px; color: #aab3c7; }
 
 .cont-grow { flex-grow: 1; }
+/* The NWS alert card is a flex item in this full-height column, and AlertBanner.css clips its overflow.
+   Left to shrink, it collapsed below its own text in a short viewport (Chrome on iOS keeps its toolbars:
+   106px → 71px, headline hidden) while the home-screen app had room. Never shrink it; .cont-grow gives way. */
+.cont > .alert-banner { flex-shrink: 0; }
+/* …and pay for the card with the readout's top gap, so Play 24H / Now still fit on an iPhone Air in
+   Chrome (420×716 visible). If alerts ever need more than that, the column scrolls rather than cuts. */
+.cont:has(> .alert-banner) .cont-readout { margin-top: 14px; }
+.cont:has(> .alert-banner) { overflow-y: auto; }
 
 /* scrubber */
 .cont-scrubber { display: flex; flex-direction: column; gap: 12px; }
