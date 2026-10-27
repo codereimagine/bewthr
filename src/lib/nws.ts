@@ -16,6 +16,18 @@ function normalizeSeverity(raw: unknown): NWSSeverity {
     : 'Unknown'
 }
 
+/** NWS sends alert text hard-wrapped at ~65 columns, so a newline lands mid-sentence
+ *  ("…for high\nprofile vehicles"). Join the wraps into running text and keep only the
+ *  blank-line paragraph breaks (the * WHAT / * WHERE / * WHEN sections). */
+export function reflowNwsText(text: string): string {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map((p) => p.split('\n').map((l) => l.trim()).filter(Boolean).join(' ').replace(/ {2,}/g, ' '))
+    .filter(Boolean)
+    .join('\n\n')
+}
+
 export interface NWSAlert {
   id: string
   event: string

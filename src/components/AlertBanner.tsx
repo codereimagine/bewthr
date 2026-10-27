@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
-import type { NWSAlert } from '../lib/nws'
+import { reflowNwsText, type NWSAlert } from '../lib/nws'
 import './AlertBanner.css'
 
 interface AlertBannerProps {
@@ -51,9 +51,9 @@ export function AlertBanner({ alerts }: AlertBannerProps) {
             </div>
             {expanded && (
               <div className="alert-details">
-                <div className="alert-description">{alert.description}</div>
+                <div className="alert-description">{reflowNwsText(alert.description)}</div>
                 {alert.instruction && (
-                  <div className="alert-instruction">{alert.instruction}</div>
+                  <div className="alert-instruction">{reflowNwsText(alert.instruction)}</div>
                 )}
               </div>
             )}

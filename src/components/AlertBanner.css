@@ -98,9 +98,8 @@
   color: var(--text-dim);
   font-family: var(--mono);
   line-height: 1.5;
-  white-space: pre-wrap;
-  max-height: 200px;
-  overflow-y: auto;
+  white-space: pre-wrap;   /* keeps the blank-line breaks between * WHAT / * WHERE; reflowNwsText removes the mid-sentence ones */
+  /* no max-height: the full alert shows in the card — no scroll box inside a scrolling page */
 }
 
 .alert-instruction {
