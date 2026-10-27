@@ -27,10 +27,13 @@ export function AlertBanner({ alerts }: AlertBannerProps) {
 
         return (
           <div key={alert.id} className={`alert-banner ${severityClass} fade-in`}>
+            {/* The whole visible card toggles — people tap the title or headline, not the thin top row.
+                The expanded details stay outside it, so scrolling them never collapses the card. */}
             <div
-              className="alert-header"
+              className="alert-tap"
               role="button"
               tabIndex={0}
+              aria-expanded={expanded}
               onClick={() => setExpandedId(expanded ? null : alert.id)}
               onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -39,11 +42,13 @@ export function AlertBanner({ alerts }: AlertBannerProps) {
                 }
               }}
             >
-              <span className="alert-severity">{alert.severity}</span>
-              <span className="alert-expires">Until {expiresStr}</span>
+              <div className="alert-header">
+                <span className="alert-severity">{alert.severity}</span>
+                <span className="alert-expires">Until {expiresStr}</span>
+              </div>
+              <div className="alert-event">{alert.event}</div>
+              <div className="alert-headline">{alert.headline}</div>
             </div>
-            <div className="alert-event">{alert.event}</div>
-            <div className="alert-headline">{alert.headline}</div>
             {expanded && (
               <div className="alert-details">
                 <div className="alert-description">{alert.description}</div>

@@ -38,7 +38,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px 8px;
+}
+
+/* the tap target: header + event + headline. cursor:pointer is also what makes iOS
+   deliver taps on a plain div to React's delegated click handler. */
+.alert-tap {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .alert-severity {
