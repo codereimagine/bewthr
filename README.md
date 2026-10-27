@@ -58,6 +58,7 @@ Most apps want your account, your data, and your attention. Every codereimagine 
 - **Today at a glance** — temperature, rain, and the sky in one calm screen.
 - **Tonight's sky** — where the sun and moon rise and set, when golden hour and dusk happen, and which planets and stars are overhead.
 - **Play the whole day** — scrub or hit Play and watch the next 24 hours of sky flow by, sunrise to midnight.
+- **Weather alerts** — official US National Weather Service alerts, shown in full. Tap one to read every word.
 - **Pick your look** — a rich "living sky", a scrub-the-day timeline, or a clean, simple view. One tap to switch.
 - **Anywhere** — fast on phones and computers.
 
@@ -84,9 +85,9 @@ npm test           # unit tests
 <details><summary><b>🔧 Under the hood</b></summary>
 
 - **Weather:** keyless — Open-Meteo with a MET.no fallback, plus NWS alerts. No API keys.
-- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ. The moon is a lit sphere carrying its real nearside maria and craters at the correct phase; the night sky draws the Yale Bright Star Catalogue's ~1,100 brightest stars, culled to those actually above your horizon.
+- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ. The moon is a lit sphere carrying its real nearside maria and craters at the correct phase — every view (the living sky, Continuum, and Sky Tonight) draws that phase from the same engine, and the moon eases through dawn and dusk and fades behind cloud instead of switching; the night sky draws the Yale Bright Star Catalogue's ~1,100 brightest stars, culled to those actually above your horizon.
 - **Privacy:** precise coordinates live in on-device storage; egress is rounded (≈1 km "surrounding" by default, selectable to ≈11 km "general", or exact). If browser GPS is blocked, it falls back to approximate network location — no prompt required.
-- **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion. Installed, the sky runs edge-to-edge and fills the whole display (a transparent status bar, so the stars show through the top); in Continuum it gains depth — the stars and moon parallax with device tilt.
+- **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion. Installed, the sky runs edge-to-edge and fills the whole display (a transparent status bar, so the stars show through the top); in Continuum it gains depth — the stars and moon parallax with device tilt — and scrubbing follows your finger minute by minute, so the sky glides rather than steps.
 - **Accessibility:** WCAG-audited contrast over the animated sky; dark / light / night / auto themes; reduced-motion support.
 - **Design study.**
 - **Stack:** React 19 · TypeScript · Vite · Canvas 2D · `astronomy-engine` · Zustand · vite-plugin-pwa
