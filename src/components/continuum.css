@@ -73,7 +73,9 @@
 /* …and pay for the card with the readout's top gap, so Play 24H / Now still fit on an iPhone Air in
    Chrome (420×716 visible). If alerts ever need more than that, the column scrolls rather than cuts. */
 .cont:has(> .alert-banner) .cont-readout { margin-top: 14px; }
-.cont:has(> .alert-banner) { overflow-y: auto; }
+.cont:has(> .alert-banner) { overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+/* …without the scroll indicator line down the right edge (same rule as html in index.css). */
+.cont:has(> .alert-banner)::-webkit-scrollbar { display: none; }
 
 /* scrubber */
 .cont-scrubber { display: flex; flex-direction: column; gap: 12px; }
