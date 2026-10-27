@@ -114,14 +114,22 @@ function celestialFix(lat: number, lon: number, when: Date): Fix {
 // true phase terminator. `frac` = illuminated fraction (0..1), `phase` = phase angle (deg,
 // <180 = waxing → lit on the right). Night = crisp warm moon; day = pale washed sphere.
 // Pure canvas; called on the static layer (Imagined) and the dynamic layer (Continuum parallax).
+// Moon night look 0..1 across the same dawn/dusk band the cloud lighting uses (sunAlt −6°..+6°).
+const moonNightF = (sunAlt: number) => 1 - Math.max(0, Math.min(1, (sunAlt + 6) / 12))
+
 function drawMoon(
   ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number,
-  frac: number, phase: number, night: boolean,
+  frac: number, phase: number, nightF: number,
 ) {
   const waxing = phase < 180
+  // nightF 0 = pale daytime moon, 1 = warm night moon; every colour blends between the two so
+  // the moon eases through dawn/dusk as the sky does (it used to switch at sunAlt 0 in one frame).
+  const mix = (day: readonly number[], night: readonly number[]) => day.map((v, i) => v + (night[i] - v) * nightF)
+  const rgb = (day: readonly number[], night: readonly number[]) => mix(day, night).slice(0, 3).map(Math.round).join(',')
+  const rgba = (day: readonly number[], night: readonly number[]) => { const c = mix(day, night); return `rgba(${c.slice(0, 3).map(Math.round).join(',')},${c[3].toFixed(3)})` }
   // Soft outer glow.
   const glow = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 3.2)
-  glow.addColorStop(0, `rgba(246,244,232,${night ? 0.26 : 0.09})`)
+  glow.addColorStop(0, `rgba(246,244,232,${(0.09 + 0.17 * nightF).toFixed(3)})`)
   glow.addColorStop(1, 'transparent')
   ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, r * 3.2, 0, 7); ctx.fill()
 
@@ -130,12 +138,14 @@ function drawMoon(
   // 1) Regolith base — pale warm-grey, highlight toward the sunlit limb (a lit 3D sphere).
   const hx = cx + (waxing ? r * 0.32 : -r * 0.32), hy = cy - r * 0.28
   const body = ctx.createRadialGradient(hx, hy, r * 0.1, cx, cy, r * 1.04)
-  if (night) { body.addColorStop(0, '#f2efe4'); body.addColorStop(0.55, '#d8d2c2'); body.addColorStop(1, '#b0aa98') }
-  else { body.addColorStop(0, '#f4f7fc'); body.addColorStop(0.6, '#dbe2ee'); body.addColorStop(1, '#b4bed2') }
+  // night #f2efe4 / #d8d2c2 @0.55 / #b0aa98 — day #f4f7fc / #dbe2ee @0.6 / #b4bed2
+  body.addColorStop(0, `rgb(${rgb([244, 247, 252], [242, 239, 228])})`)
+  body.addColorStop(0.6 - 0.05 * nightF, `rgb(${rgb([219, 226, 238], [216, 210, 194])})`)
+  body.addColorStop(1, `rgb(${rgb([180, 190, 210], [176, 170, 152])})`)
   ctx.fillStyle = body; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r)
 
   // 2) Maria — the real nearside seas at their true relative positions (the "man in the moon").
-  const seaDark = night ? '120,114,94' : '150,160,185'
+  const seaDark = rgb([150, 160, 185], [120, 114, 94])
   const maria: ReadonlyArray<readonly [number, number, number, number]> = [
     [-0.32, -0.34, 0.42, 0.95], // Imbrium
     [0.08, -0.30, 0.27, 0.34],  // Serenitatis
@@ -175,13 +185,13 @@ function drawMoon(
 
   // 4) Limb darkening — rounds the lit sphere toward the edge.
   const limb = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r)
-  limb.addColorStop(0, 'transparent'); limb.addColorStop(1, night ? 'rgba(16,14,26,0.52)' : 'rgba(70,80,110,0.4)')
+  limb.addColorStop(0, 'transparent'); limb.addColorStop(1, rgba([70, 80, 110, 0.4], [16, 14, 26, 0.52]))
   ctx.fillStyle = limb; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill()
 
   // 5) Phase shadow — darken the UNLIT lune, kept semi-opaque so the surface shows faintly
   //    through it (earthshine). evenodd: full disc MINUS the lit lune = the shadow region.
   const moff = (1 - 2 * frac) * r
-  ctx.fillStyle = night ? 'rgba(5,8,18,0.9)' : 'rgba(150,165,195,0.82)'
+  ctx.fillStyle = rgba([150, 165, 195, 0.82], [5, 8, 18, 0.9])
   ctx.beginPath()
   ctx.rect(cx - r, cy - r, 2 * r, 2 * r)
   ctx.moveTo(cx, cy - r)
@@ -194,7 +204,7 @@ function drawMoon(
 
   ctx.restore()
   // Crisp limb rim.
-  ctx.strokeStyle = night ? 'rgba(246,244,232,0.14)' : 'rgba(220,230,245,0.26)'
+  ctx.strokeStyle = rgba([220, 230, 245, 0.26], [246, 244, 232, 0.14])
   ctx.lineWidth = Math.max(0.5, r * 0.025); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke()
 }
 
@@ -239,6 +249,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps (idle/scrub only)
   const cloudsRef = useRef<Cloud[]>([])  // persistent cloud pool — survives condition changes, fades to target
   const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
+  const moonClearRef = useRef(-1)  // Continuum moon visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
   const precipFRef = useRef(0)   // rain/snow opacity, faded in so precipitation doesn't pop on
   const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
   const playRef = useRef<PlayClock | null>(null)
@@ -452,14 +463,15 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       }
       // Imagined: the moon rides on the static backdrop. Continuum (alive) draws it on the
       // dynamic layer instead, so it parallaxes with tilt — see the alive block below.
-      if (fix && fix.moonAlt > 0 && !rainy && !overcast && !alive) {
+      const moonVis = moonClearRef.current < 0 ? (rainy || overcast ? 0 : 1) : moonClearRef.current
+      if (fix && fix.moonAlt > 0 && moonVis > 0.01 && !alive) {
         const pp = project(fix.moonAz, fix.moonAlt, W, H)
         if (pp.vis) {
           // Fades toward a faint PALE daytime sphere as the sun climbs (a real daytime moon is
-          // washed out); crisp warm moon only at night. Tracks its true az/alt like the sun.
+          // washed out); warm night moon blended in across dawn/dusk. Tracks its true az/alt.
           const sa = fix.sunAlt
-          octx.globalAlpha = sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)
-          drawMoon(octx, pp.x, pp.y, 30 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
+          octx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonVis
+          drawMoon(octx, pp.x, pp.y, 30 * DPR, fix.moonFrac, fix.moonPhase, moonNightF(sa))
           octx.globalAlpha = 1
         }
       }
@@ -504,6 +516,20 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         lastStarKeyRef.current = ''   // force a fresh throttled recompute when Play stops
         staticDirtyRef.current = true
       }
+      // Opacity/colour fades eased by elapsed time (τ≈220ms), NOT per-frame — so a cloud
+      // condition change settles in the same ~0.5s at 60 AND 120fps (per-frame easing ran
+      // twice as fast at 120, snapping the transition — the Play choppiness).
+      const dtF = prevNow ? Math.min(100, now - prevNow) : 16.7
+      prevNow = now
+      const fadeK = 1 - Math.exp(-dtF / 220)
+      // Moon clouded out (overcast/rain) fades with the cloud field's timing instead of popping —
+      // both views. Imagined's moon is on the static layer, so repaint it while the fade runs.
+      const moonTarget = rainy || overcast ? 0 : 1
+      if (moonClearRef.current < 0) moonClearRef.current = moonTarget
+      else if (Math.abs(moonTarget - moonClearRef.current) > 0.004) {
+        moonClearRef.current += (moonTarget - moonClearRef.current) * fadeK
+        if (!alive) staticDirtyRef.current = true
+      } else moonClearRef.current = moonTarget
       // Repaint the static sky layer only when the celestial fix changed (scrub / play frame),
       // not every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
       if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
@@ -511,12 +537,6 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       // sun/moon/stars — so cloud drift and rain/snow fall are correct at ANY refresh (60 or
       // 120fps) with no per-frame step factor. Nothing here accumulates per frame.
       const t = now * 0.001
-      // Opacity/colour fades eased by elapsed time (τ≈220ms), NOT per-frame — so a cloud
-      // condition change settles in the same ~0.5s at 60 AND 120fps (per-frame easing ran
-      // twice as fast at 120, snapping the transition — the Play choppiness).
-      const dtF = prevNow ? Math.min(100, now - prevNow) : 16.7
-      prevNow = now
-      const fadeK = 1 - Math.exp(-dtF / 220)
       ctx.clearRect(0, 0, W, H)
       // Living sky (Continuum): clouds drift and stars twinkle on the animated layer
       // every frame — alive when idle, not just while scrubbing. A continuous
@@ -609,12 +629,12 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         }
         // Continuum moon: drawn here (not the static backdrop) so it rides its own parallax
         // depth with device tilt — a nearer, 3D element against the deeper star field.
-        if (fix && fix.moonAlt > 0 && !rainy && !overcast) {
+        if (fix && fix.moonAlt > 0 && moonClearRef.current > 0.01) {
           const pp = project(fix.moonAz, fix.moonAlt, W, H)
           if (pp.vis) {
             const sa = fix.sunAlt
-            ctx.globalAlpha = sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)
-            drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 30 * DPR, fix.moonFrac, fix.moonPhase, sa < 0)
+            ctx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonClearRef.current
+            drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 30 * DPR, fix.moonFrac, fix.moonPhase, moonNightF(sa))
             ctx.globalAlpha = 1
           }
         }
