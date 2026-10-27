@@ -186,7 +186,9 @@ function drawMoon(
   ctx.rect(cx - r, cy - r, 2 * r, 2 * r)
   ctx.moveTo(cx, cy - r)
   ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, !waxing)       // lit limb (right if waxing)
-  ctx.ellipse(cx, cy, Math.abs(moff), r, 0, Math.PI / 2, -Math.PI / 2, waxing ? moff < 0 : moff > 0)
+  // Terminator bulges AWAY from the lit limb when gibbous (moff < 0) and toward it when a crescent.
+  // This flag was inverted (gibbous drew as crescent: a 98% moon rendered fully dark).
+  ctx.ellipse(cx, cy, Math.abs(moff), r, 0, Math.PI / 2, -Math.PI / 2, waxing ? moff > 0 : moff < 0)
   ctx.closePath()
   ctx.fill('evenodd')
 
