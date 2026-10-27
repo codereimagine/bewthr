@@ -119,7 +119,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const handleRef = useRef<HTMLDivElement>(null)
   const tempRef = useRef<HTMLSpanElement>(null)
   const posRef = useRef(0)
-  const skyBucketRef = useRef(-1)             // 5-min sky bucket for scrub commits
+  const skyBucketRef = useRef(-1)             // 1-min sky bucket for scrub commits
   const hourRef = useRef(-1)                  // rounded hour for Play content commits
   const STEP_MS = 2500                        // playback: ms per hour (~60s for the full day)
 
@@ -132,8 +132,10 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const f = len ? Math.max(0, Math.min(pos, len - 1)) : 0
   const flo = Math.floor(f), fhi = Math.min(Math.max(len - 1, 0), flo + 1), frac = f - flo
   const dispTemp = len ? Math.round(hours[flo].temp + (hours[fhi].temp - hours[flo].temp) * frac) : 0
-  // Sky time interpolated, quantised to 5 min so LiveSky repaints only as the sun actually moves (not every frame).
-  const skyMs = len ? Math.round((hours[flo].time.getTime() + (hours[fhi].time.getTime() - hours[flo].time.getTime()) * frac) / 3e5) * 3e5 : 0
+  // Sky time interpolated, to the second: one drag pixel ≈ 4 min of sky, and the old 5-min
+  // quantum made the moon hop ~5 px then stall (a visible stutter). Play doesn't use this —
+  // it drives the sky inside LiveSky's rAF loop — so this only updates as the finger moves.
+  const skyMs = len ? Math.round((hours[flo].time.getTime() + (hours[fhi].time.getTime() - hours[flo].time.getTime()) * frac) / 1e3) * 1e3 : 0
   const skyTime = useMemo(() => new Date(skyMs), [skyMs])
   // Stable `current` for LiveSky — it only reads weather_code + is_day, so reuse the same
   // object across consecutive same-condition hours. That stops the canvas rAF loop tearing
@@ -165,7 +167,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const tempAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return Math.round(hours[a].temp + (hours[b].temp - hours[a].temp) * (p - a)) }
   const skyMsAt = (p: number) => { const a = Math.floor(p), b = Math.min(len - 1, a + 1); return hours[a].time.getTime() + (hours[b].time.getTime() - hours[a].time.getTime()) * (p - a) }
   // High-frequency visuals (handle + temp) go straight to the DOM every frame; the
-  // sky + discrete content re-render only when the 5-min sky bucket changes — so the
+  // sky + discrete content re-render only when the 1-min sky bucket changes — so the
   // weather background glides in lock-step with the slider, no render storm, and
   // NOW/PLAY stay tappable.
   // High-frequency visuals (handle + temp) go straight to the DOM every frame.
@@ -174,11 +176,11 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     if (handleRef.current) handleRef.current.style.left = `${xPct(p).toFixed(2)}%`
     if (tempRef.current) tempRef.current.textContent = String(tempAt(p))
   }
-  // Drag / scrub: no play clock, so the sky follows the finger via 5-min sky buckets —
+  // Drag / scrub: no play clock, so the sky follows the finger via 1-min sky buckets (5-min buckets made the moon hop then stall) —
   // a React commit only when the bucket changes (background glides, no render storm).
   const applyScrub = (p: number) => {
     applyDom(p)
-    const bucket = Math.round(skyMsAt(p) / 3e5)
+    const bucket = Math.round(skyMsAt(p) / 6e4)
     if (bucket !== skyBucketRef.current) { skyBucketRef.current = bucket; setPos(p) }
   }
   // Play: LiveSky drives the sky from its own continuous clock, so React only refreshes the
@@ -188,7 +190,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     const hr = Math.round(p)
     if (hr !== hourRef.current) { hourRef.current = hr; setPos(p) }
   }
-  const jump = (n: number) => { stopPlay(); const q = Math.max(0, Math.min(n, len - 1)); skyBucketRef.current = Math.round(skyMsAt(q) / 3e5); hourRef.current = Math.round(q); setPos(q) }
+  const jump = (n: number) => { stopPlay(); const q = Math.max(0, Math.min(n, len - 1)); skyBucketRef.current = Math.round(skyMsAt(q) / 6e4); hourRef.current = Math.round(q); setPos(q) }
   const play = () => {
     if (rafRef.current != null) { stopPlay(); setPos(posRef.current); return }   // PAUSE — freeze where it is
     const start = pos >= len - 1 ? 0 : pos

@@ -254,7 +254,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const starsRef = useRef<Star[]>([])
   const starCountRef = useRef(0)      // valid entries in starsRef (play reuses a buffer)
   const starBufRef = useRef<Star[]>([])  // reused per-frame buffer during Play (no alloc)
-  const lastStarKeyRef = useRef('')   // throttle star recompute to ~15-min steps (idle/scrub only)
+  const lastStarKeyRef = useRef('')   // throttle star recompute to 1-min sky steps (idle/scrub only)
   const cloudsRef = useRef<Cloud[]>([])  // persistent cloud pool — survives condition changes, fades to target
   const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
   const moonClearRef = useRef(-1)  // Continuum moon visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
@@ -273,9 +273,9 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
     const when = time ?? new Date()
     fixRef.current = celestialFix(lat, lon, when)
     staticDirtyRef.current = true   // sun/moon/sky moved → repaint the static layer next frame
-    // Star field: project the real bright-star catalogue to this hour, throttled to ~15-min
-    // sky-time buckets so scrubbing doesn't recompute the full catalogue every step. (alive only.)
-    const starKey = alive ? `${Math.round(when.getTime() / 9e5)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
+    // Star field: project the real bright-star catalogue to this hour, throttled to 1-min
+    // sky-time buckets (~0.6 px of star motion; 15-min buckets made stars jump ~9 px while scrubbing). (alive only.)
+    const starKey = alive ? `${Math.round(when.getTime() / 6e4)}|${lat.toFixed(2)}|${lon.toFixed(2)}` : ''
     if (starKey !== lastStarKeyRef.current) {
       lastStarKeyRef.current = starKey
       starsRef.current = alive ? projectStars(lat, lon, when) : []
