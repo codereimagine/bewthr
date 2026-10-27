@@ -13,7 +13,7 @@ $\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ ·
 $\textcolor{#22d3ee}{\textsf{IMAGINED}}$ — the full living sky
 <p>
   <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky over Tokyo, partly cloudy" />
-  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky over New York with the moon and stars" />
+  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky over New York with the stars out" />
   <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Sky Tonight — the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
 </p>
 
