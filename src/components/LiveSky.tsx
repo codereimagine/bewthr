@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon } from '../lib/astronomy'
 import { projectStars, projectStarsInto, type Star } from '../lib/starField'
@@ -242,6 +242,14 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const skyRef = useRef<HTMLCanvasElement>(null)
   const rainRef = useRef<HTMLCanvasElement>(null)
   const fixRef = useRef<Fix | null>(null)
+  // No `time` (Imagined = real now): re-fix every 60 s, the same cadence as useSky, so the
+  // backdrop moon/sun keep their true position + phase instead of freezing at page load.
+  const [nowTick, setNowTick] = useState(0)
+  useEffect(() => {
+    if (time != null) return
+    const id = setInterval(() => setNowTick((n) => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [time])
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
   const starsRef = useRef<Star[]>([])
   const starCountRef = useRef(0)      // valid entries in starsRef (play reuses a buffer)
@@ -273,7 +281,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       starsRef.current = alive ? projectStars(lat, lon, when) : []
       starCountRef.current = starsRef.current.length
     }
-  }, [lat, lon, time, alive])
+  }, [lat, lon, time, alive, nowTick])
 
   // Continuum 3D: gentle parallax from device tilt. iOS needs a gesture to grant
   // motion access, so request it on the first tap; no-op if unavailable/denied.

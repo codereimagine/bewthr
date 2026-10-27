@@ -1,26 +1,12 @@
 import { useId } from 'react'
-import type { MoonInfo, MoonPhaseName } from '../lib/astronomy'
+import type { MoonInfo } from '../lib/astronomy'
 import type { TimeFormat } from '../store/settings'
 import { formatSunTime } from '../lib/skyFormat'
+import { moonShadowPath } from '../lib/skyGlyphs'
 
 interface SkyHeroMoonProps {
   moon: MoonInfo
   timeFormat: TimeFormat
-}
-
-// Shadow circle x-offset per phase (Northern Hemisphere convention).
-// Two same-radius circles overlapping: lit moon at (0,0), dark shadow
-// at (cx, 0). Where shadow overlaps moon disc, shadow visible.
-// null = no shadow rendered (Full moon).
-const PHASE_SHADOW_CX: Record<MoonPhaseName, number | null> = {
-  New: 0,
-  'Waxing Crescent': -20,
-  'First Quarter': -48,
-  'Waxing Gibbous': -65,
-  Full: null,
-  'Waning Gibbous': 65,
-  'Last Quarter': 48,
-  'Waning Crescent': 20,
 }
 
 function sentenceCase(s: string): string {
@@ -34,7 +20,11 @@ export function SkyHeroMoon({ moon, timeFormat }: SkyHeroMoonProps) {
   const haloId = `moonHalo-${id}`
   const limbId = `moonLimb-${id}`
 
-  const cx = PHASE_SHADOW_CX[moon.phaseName]
+  // Phase shadow from xengine's real illuminated fraction + waxing/waning — the same terminator
+  // as the moon card (SkyMoon) and the live sky. It used to be one fixed shadow per phase NAME
+  // (8 looks, up to 11 points off; "Full" = no shadow anywhere from ~92% to 100% lit).
+  const waxing = moon.phaseAngle < 180
+  const nearlyFull = moon.illumination > 0.99
   const pct = Math.round(moon.illumination * 100)
   const isFull = moon.phaseName === 'Full'
 
@@ -86,8 +76,8 @@ export function SkyHeroMoon({ moon, timeFormat }: SkyHeroMoonProps) {
             <circle r="48" fill={`url(#${limbId})`} />
           </g>
           {/* phase shadow */}
-          {cx !== null && (
-            <circle cx={cx} r="48" fill="#08080d" clipPath={`url(#${clipId})`} />
+          {!nearlyFull && (
+            <path d={moonShadowPath(48, moon.illumination, waxing)} fill="#08080d" clipPath={`url(#${clipId})`} />
           )}
         </svg>
       </div>
