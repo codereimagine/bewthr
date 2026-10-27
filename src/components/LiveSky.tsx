@@ -262,6 +262,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
   const sunClearRef = useRef(-1)   // sun disc visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
   const moonClearRef = useRef(-1)  // Continuum moon visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
+  const starClearRef = useRef(-1)  // Continuum star brightness 0..1 (clear 1 · cloud 0.5 · overcast/rain 0), eased the same way
   const precipFRef = useRef(0)   // rain/snow opacity, faded in so precipitation doesn't pop on
   const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
   const playRef = useRef<PlayClock | null>(null)
@@ -560,6 +561,12 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         sunClearRef.current += (sunTarget - sunClearRef.current) * fadeK
         staticDirtyRef.current = true
       } else sunClearRef.current = sunTarget
+      // Stars dim behind cloud and go out under overcast/rain on the same timing (they used to
+      // switch in one frame while the clouds were still fading in).
+      const starTarget = rainy || overcast ? 0 : cloudy ? 0.5 : 1
+      if (starClearRef.current < 0) starClearRef.current = starTarget
+      else if (Math.abs(starTarget - starClearRef.current) > 0.004) starClearRef.current += (starTarget - starClearRef.current) * fadeK
+      else starClearRef.current = starTarget
       // Repaint the static sky layer only when the celestial fix changed (scrub / play frame),
       // not every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
       if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
@@ -615,14 +622,18 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
             const lx = x + (src.x - x) * 0.1, ly = y - rr * 0.22
             const crown = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr * 0.8)
             crown.addColorStop(0, litCol); crown.addColorStop(1, 'transparent')
+            // Lit top fades with its cloud (it used to pop on/off at full strength); a settled
+            // cloud's c.o is ≥ 0.34, so it is drawn exactly as before.
+            ctx.globalAlpha = Math.min(1, c.o / 0.34)
             ctx.fillStyle = crown; ctx.beginPath(); ctx.arc(lx, ly, rr * 0.8, 0, 7); ctx.fill()
+            ctx.globalAlpha = 1
           }
         }
-        if (sunAlt < -4 && !rainy && !overcast) {
+        if (sunAlt < -4 && starClearRef.current > 0.01) {
           // Twilight fade: stars ease in across the dusk band (sunAlt -4°..-10°) rather than
           // popping on at -8°, so day↔night glides. starF = 0 at -4°, 1 by -10°.
           const starF = Math.max(0, Math.min(1, (-4 - sunAlt) / 6))
-          const dim = (cloudy ? 0.5 : 1) * starF
+          const dim = starClearRef.current * starF
           const starArr = starsRef.current, starN = starCountRef.current
           for (let k = 0; k < starN; k++) {
             const st = starArr[k]
@@ -661,7 +672,9 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         // depth with device tilt — a nearer, 3D element against the deeper star field.
         if (fix && fix.moonAlt > 0 && moonClearRef.current > 0.01) {
           const pp = project(fix.moonAz, fix.moonAlt, W, H)
-          if (pp.vis) {
+          // Drawn until the whole disc has left the screen — gating on pp.vis (centre on screen)
+          // popped half a moon in/out at the side edges.
+          if (Math.abs(pp.x - W / 2) < W / 2 + 130 * DPR) {   // disc + its glow (r·3.2) + tilt parallax
             const sa = fix.sunAlt
             ctx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonClearRef.current
             drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 30 * DPR, fix.moonFrac, fix.moonPhase, moonNightF(sa))
