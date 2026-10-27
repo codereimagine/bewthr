@@ -114,6 +114,9 @@ function celestialFix(lat: number, lon: number, when: Date): Fix {
 // true phase terminator. `frac` = illuminated fraction (0..1), `phase` = phase angle (deg,
 // <180 = waxing → lit on the right). Night = crisp warm moon; day = pale washed sphere.
 // Pure canvas; called on the static layer (Imagined) and the dynamic layer (Continuum parallax).
+// 0..1 clamp with a smoothstep ease — the sun/sky blends use it so nothing switches in one frame.
+const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t) }
+
 // Moon night look 0..1 across the same dawn/dusk band the cloud lighting uses (sunAlt −6°..+6°).
 const moonNightF = (sunAlt: number) => 1 - Math.max(0, Math.min(1, (sunAlt + 6) / 12))
 
@@ -257,6 +260,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   const lastStarKeyRef = useRef('')   // throttle star recompute to 1-min sky steps (idle/scrub only)
   const cloudsRef = useRef<Cloud[]>([])  // persistent cloud pool — survives condition changes, fades to target
   const darkCurRef = useRef<[number, number, number]>([...DARK_CLEAR])  // cloud base colour, cross-faded on condition change
+  const sunClearRef = useRef(-1)   // sun disc visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
   const moonClearRef = useRef(-1)  // Continuum moon visibility 0..1, eased toward clear/clouded-out (-1 = not set yet)
   const precipFRef = useRef(0)   // rain/snow opacity, faded in so precipitation doesn't pop on
   const staticDirtyRef = useRef(true) // repaint the static sky layer next frame (time/fix changed)
@@ -429,10 +433,12 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       // Dither the sky gradient to kill 24-bit colour banding (very low alpha — perceptible
       // only as smoother bands, never as grain).
       if (noisePattern) { octx.save(); octx.globalAlpha = 0.03; octx.fillStyle = noisePattern; octx.fillRect(0, 0, W, H); octx.restore() }
-      const twilight = sunAlt > -8
+      // Horizon tint: cool night → warm twilight, blended across sunAlt −10°..−6° (it used to
+      // flip at −8° in one frame).
+      const tw = smooth01((sunAlt + 10) / 4)
       const hz = octx.createLinearGradient(0, H * 0.55, 0, H)
       hz.addColorStop(0, 'rgba(0,0,0,0)')
-      hz.addColorStop(1, twilight ? 'rgba(255,180,120,.24)' : 'rgba(120,140,195,.12)')
+      hz.addColorStop(1, `rgba(${Math.round(120 + 135 * tw)},${Math.round(140 + 40 * tw)},${Math.round(195 - 75 * tw)},${(0.12 + 0.12 * tw).toFixed(3)})`)
       octx.fillStyle = hz; octx.fillRect(0, H * 0.55, W, H * 0.45)
       // Continuum atmospheric depth: the zenith sits a touch deeper than the horizon — a subtle
       // 3D cue that also lifts header/readout contrast at night. Faint; night only.
@@ -444,15 +450,24 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       if (fix && sunAlt > -6) {
         const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H)
         const g = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, W * 1.1)
-        g.addColorStop(0, `rgba(255,225,170,${sunAlt > 0 ? 0.5 : 0.28})`); g.addColorStop(1, 'transparent')
+        // Sky glow ramps in from −6° (0 → 0.28 at the horizon) and on to 0.5 by +4° — it used to
+        // switch on at −6° and jump 0.28 → 0.5 at 0° in single frames.
+        const haloA = sunAlt < 0 ? 0.28 * smooth01((sunAlt + 6) / 6) : 0.28 + 0.22 * smooth01(sunAlt / 4)
+        g.addColorStop(0, `rgba(255,225,170,${haloA.toFixed(3)})`); g.addColorStop(1, 'transparent')
         octx.globalCompositeOperation = 'screen'
         octx.fillStyle = g; octx.beginPath(); octx.arc(pp.x, pp.y, W * 1.1, 0, 7); octx.fill()
-        if (sunAlt > 0 && !(cloudy || rainy || snowy)) {
+        // Disc rises over the first ~1.5° and fades with cloud (sunClearRef, eased with the cloud
+        // field) instead of popping on at 0° or on a condition change.
+        const sunVis = sunClearRef.current < 0 ? (cloudy || rainy || snowy ? 0 : 1) : sunClearRef.current
+        const discA = smooth01((sunAlt + 0.5) / 1.5) * sunVis
+        if (discA > 0.01) {
           // soft-edged sun glow (not a hard opaque disc blob over the UI)
           const sr = 30 * DPR
           const sg = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, sr)
           sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
+          octx.globalAlpha = discA
           octx.fillStyle = sg; octx.beginPath(); octx.arc(pp.x, pp.y, sr, 0, 7); octx.fill()
+          octx.globalAlpha = 1
         }
         octx.globalCompositeOperation = 'source-over'
       }
@@ -538,6 +553,13 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         moonClearRef.current += (moonTarget - moonClearRef.current) * fadeK
         if (!alive) staticDirtyRef.current = true
       } else moonClearRef.current = moonTarget
+      // Same for the sun disc — it's on the static layer in both views, so repaint while it fades.
+      const sunTarget = cloudy || rainy || snowy ? 0 : 1
+      if (sunClearRef.current < 0) sunClearRef.current = sunTarget
+      else if (Math.abs(sunTarget - sunClearRef.current) > 0.004) {
+        sunClearRef.current += (sunTarget - sunClearRef.current) * fadeK
+        staticDirtyRef.current = true
+      } else sunClearRef.current = sunTarget
       // Repaint the static sky layer only when the celestial fix changed (scrub / play frame),
       // not every bucket via an effect re-run — that teardown/rebuild was the Play stutter.
       if (staticDirtyRef.current) { staticDirtyRef.current = false; renderStatic() }
