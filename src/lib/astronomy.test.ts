@@ -5,6 +5,7 @@ import {
   getPlanets,
   azimuthToCompass,
   altitudeState,
+  moonArcWindow,
 } from './astronomy'
 
 // Fort Collins, CO (MDT = UTC-6 in June)
@@ -79,5 +80,14 @@ describe('xengine (astronomy) — celestial accuracy', () => {
     const b = getSun(LAT, LON, t)
     expect(a.altitude).toBe(b.altitude)
     expect(a.azimuth).toBe(b.azimuth)
+  })
+
+  it('moon arc window: just after moonrise (next rise > 24 h away) still finds tonight\'s rise', () => {
+    // New York, 2026-10-27 7:08 PM EDT — the moon rose at 6:38 PM; the next rise is ~24.8 h later.
+    const w = moonArcWindow(40.71, -74.01, new Date('2026-10-27T23:08:00Z'))
+    expect(w.rise).toBeInstanceOf(Date)
+    expect(w.set).toBeInstanceOf(Date)
+    expect(Math.abs(w.rise!.getTime() - Date.parse('2026-10-27T22:38:00Z'))).toBeLessThan(5 * 60e3)
+    expect(w.set!.getTime()).toBeGreaterThan(w.rise!.getTime())
   })
 })

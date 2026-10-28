@@ -9,8 +9,9 @@ import {
 
 // SKY PATH PANORAMA — the Imagined sky arc, V3: the sun and moon ride their REAL
 // rise→set lines, computed from the xengine's altitude + azimuth (astronomy.ts).
-// A first-person dusk horizon: azimuth spreads the path across (E→S→W), altitude is
-// height, so the two paths differ exactly as the real sky does. Native 2D canvas +
+// A first-person dusk horizon over the FULL 360° — laid out like the main sky (LiveSky):
+// centred on the equator (S here), E left, W right, N at both edges; altitude is height,
+// so the two paths differ exactly as the real sky does. Native 2D canvas +
 // rAF (bewthr's stack, like LiveSky): on open each body sweeps up to its live
 // position, then rests with a breathing glow. DPR-capped; reduced-motion = still.
 // IMAGINED-ONLY (mounted only from SkySun's imagined branch); coords stay inside the
@@ -72,17 +73,19 @@ export function SkyPathPanorama() {
       bodies.push({ pts: mPts, riseMs: mWin.rise.getTime(), setMs: mWin.set.getTime(), core: '#dfebff', glow: '150,190,255', up: (d) => moonAltAz(lat, lon, d), isMoon: true })
     if (!bodies.length) return
 
-    // projection bounds from the real data (both paths fit, with padding)
-    let azMin = 360, azMax = 0, altMax = 10
-    for (const b of bodies) for (const p of b.pts) { if (p.az < azMin) azMin = p.az; if (p.az > azMax) azMax = p.az; if (p.alt > altMax) altMax = p.alt }
-    azMin -= 8; azMax += 8; altMax = Math.min(90, altMax + 10)
+    // height scale from the real data (the higher path fits, with padding); width is always 360°
+    let altMax = 10
+    for (const b of bodies) for (const p of b.pts) if (p.alt > altMax) altMax = p.alt
+    altMax = Math.min(90, altMax + 10)
+    const south = lat < 0
+    const face = south ? 0 : 180   // same centre as the main sky
 
     // fixed starfield (seeded, so it doesn't swim between frames)
     let sd = 7; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280 }
     const stars = Array.from({ length: 64 }, () => [rnd(), rnd(), rnd() * 1.3, rnd() * 0.5 + 0.2])
 
     let W = 0, H = 0, DPR = 1, hY = 0; const mL = 18, mR = 18
-    const ax = (az: number) => mL + ((az - azMin) / (azMax - azMin)) * (W / DPR - mL - mR)
+    const ax = (az: number) => mL + ((((az - face + 540) % 360)) / 360) * (W / DPR - mL - mR)
     const ay = (alt: number) => hY - (Math.max(0, alt) / altMax) * (hY - 26)
 
     function resize() {
@@ -94,6 +97,11 @@ export function SkyPathPanorama() {
       ctx!.setTransform(DPR, 0, 0, DPR, 0, 0)
       hY = (H / DPR) * 0.82
     }
+
+    // A path that crosses the wrap edge (due N here) continues from the other side — lift the
+    // pen there instead of drawing a line across the whole chart.
+    const trace = (pts: { x: number; y: number }[]) => pts.forEach((p, i) =>
+      (i && Math.abs(p.x - pts[i - 1].x) < (W / DPR) / 2 ? ctx!.lineTo(p.x, p.y) : ctx!.moveTo(p.x, p.y)))
 
     const start = performance.now()
     function draw(tMs: number) {
@@ -113,12 +121,13 @@ export function SkyPathPanorama() {
       ctx.globalAlpha = 1
       // horizon line (no solid ground fill — the card shows through)
       ctx.strokeStyle = 'rgba(160,190,235,0.3)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, hY); ctx.lineTo(cw, hY); ctx.stroke()
-      // compass ticks (only those inside range)
+      // compass ticks all the way round (N sits at both edges)
       ctx.fillStyle = 'rgba(160,190,235,0.6)'; ctx.font = '9px ui-monospace, monospace'; ctx.textAlign = 'center'
-      for (const [t, az] of [['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270]] as [string, number][]) {
-        if (az < azMin || az > azMax) continue
-        ctx.fillText(t, ax(az), hY + 12)
+      for (const [t, az] of [['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270], ['NW', 315]] as [string, number][]) {
+        ctx.fillText(south ? ({ NE: 'SW', E: 'W', SE: 'NW', S: 'N', SW: 'NE', W: 'E', NW: 'SE' } as Record<string, string>)[t] : t, ax(south ? (az + 180) % 360 : az), hY + 12)
       }
+      ctx.textAlign = 'left'; ctx.fillText(south ? 'S' : 'N', 2, hY + 12)
+      ctx.textAlign = 'right'; ctx.fillText(south ? 'S' : 'N', cw - 2, hY + 12)
       // legend — which line is which
       ctx.textAlign = 'left'; ctx.font = '9px ui-monospace, monospace'
       ctx.fillStyle = '#f6dca8'; ctx.beginPath(); ctx.arc(9, 10, 3, 0, 7); ctx.fill()
@@ -136,7 +145,7 @@ export function SkyPathPanorama() {
         ctx.setLineDash([3, 5]); ctx.lineWidth = 1.5
         // distinct even when both are below the horizon: warm gold (sun) vs cool blue (moon)
         ctx.strokeStyle = b.isMoon ? 'rgba(140,185,255,0.42)' : 'rgba(245,186,104,0.42)'
-        ctx.beginPath(); P.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke()
+        ctx.beginPath(); trace(P); ctx.stroke()
         ctx.setLineDash([])
         if (isUp) {
           // elapsed (bright, glowing), revealed up to frac*reveal
@@ -145,7 +154,7 @@ export function SkyPathPanorama() {
           if (cut.length > 1) {
             ctx.save(); ctx.shadowColor = `rgba(${b.glow},0.85)`; ctx.shadowBlur = 10
             ctx.strokeStyle = b.core; ctx.lineWidth = 3.5; ctx.lineCap = 'round'
-            ctx.beginPath(); cut.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); ctx.restore()
+            ctx.beginPath(); trace(cut); ctx.stroke(); ctx.restore()
           }
           // body at the revealed position (sweeps to live, then rests)
           const bp = P.reduce((a, c) => (Math.abs(c.t - upto) < Math.abs(a.t - upto) ? c : a))

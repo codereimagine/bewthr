@@ -268,8 +268,9 @@ export function moonArcWindow(
   const nextSet = SearchRiseSet(MOON, observer, -1, date, 1)
   let rise = nextRise ? nextRise.date : null
   const set = nextSet ? nextSet.date : null
-  // Moon currently up (set precedes the next rise): use the rise it came up on.
-  if (rise && set && set.getTime() < rise.getTime()) {
+  // Moon currently up (set precedes the next rise, or the next rise is over a day away — just
+  // after moonrise it is ~24.8 h off): use the rise it came up on.
+  if (set && (!rise || set.getTime() < rise.getTime())) {
     const dayAgo = new Date(date.getTime() - 25 * 60 * 60 * 1000) // moon-day ~24.8h
     const prevRise = SearchRiseSet(MOON, observer, +1, dayAgo, 2)
     if (prevRise) rise = prevRise.date
