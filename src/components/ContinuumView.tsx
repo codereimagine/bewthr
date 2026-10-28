@@ -203,7 +203,9 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     const rate = wall > 0 ? (endMs - base) / wall : 3.6e6 / STEP_MS
     setPlaying(true); setPlaySpec({ base, rate, startPerf: t0, endMs }); setPos(start)
     const tick = (now: number) => {
-      const p = Math.min(len - 1, start + (now - t0) / STEP_MS)
+      // A frame's timestamp can precede t0 (taken in the tap handler) → p < start → at NOW,
+      // hours[-1] → crash that stopped the tour. Never go below the start.
+      const p = Math.min(len - 1, start + Math.max(0, now - t0) / STEP_MS)
       applyPlay(p)
       if (p >= len - 1) { stopPlay(); setPos(len - 1); return }
       rafRef.current = requestAnimationFrame(tick)
