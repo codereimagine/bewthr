@@ -13,15 +13,15 @@ $\textcolor{#22d3ee}{\textsf{space}}$ · $\textcolor{#d946ef}{\textsf{time}}$ ·
 $\textcolor{#22d3ee}{\textsf{IMAGINED}}$ — the full living sky
 <p>
   <img src="screenshots/hero-day.png" width="30%" alt="bewthr Imagined — daytime living sky over Tokyo, partly cloudy" />
-  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky over New York with the stars out" />
-  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Sky Tonight — the sun and moon on their real sky-dome paths, a dusk timeline, and planets and constellations each with a sky-position dial" />
+  <img src="screenshots/hero-night.png" width="30%" alt="bewthr Imagined — night living sky over New York: the moon rising low in the east, real stars across the whole sky" />
+  <img src="screenshots/sky-tonight.png" width="30%" alt="bewthr Sky Tonight — the sun and moon on their real paths across the full 360° sky (N to N), a dusk timeline, and planets and constellations each with a sky-position dial" />
 </p>
 
 $\textcolor{#d946ef}{\textsf{CONTINUUM}}$ — scrub or play a full day of sky
 <p>
   <img src="screenshots/continuum-day.png" width="30%" alt="bewthr Continuum — daytime sky over New York, scrubbed to late morning, with a 24-hour scrubber and a Play control" />
   <img src="screenshots/continuum-tokyo.png" width="30%" alt="bewthr Continuum — golden-hour sky over Tokyo, scrubbed to late afternoon" />
-  <img src="screenshots/continuum-night.png" width="30%" alt="bewthr Continuum — night living sky with real stars over New York, right now" />
+  <img src="screenshots/continuum-night.png" width="30%" alt="bewthr Continuum — night living sky over New York right now: real stars and the moon rising in the east" />
 </p>
 
 $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
@@ -39,7 +39,7 @@ $\textcolor{#f5a623}{\textsf{CLASSIC}}$ — a clean, minimal instrument view
 
 ## 🌤️ What is it?
 
-bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. The moon shows its real shape for tonight — the actual seas and craters at tonight's true phase. If it's raining outside, rain falls on the screen. It's the weather you can just $\textcolor{#22d3ee}{\textsf{look at}}$.
+bewthr tells you the weather — but instead of a wall of numbers, it shows you the **actual sky** for exactly where you are, right now. Daytime, the app is bright; at night it goes dark and the stars come out. You see the **whole sky** at once — all the way round, horizon to overhead — so the sun, the moon and the stars are always on screen, right where they really are. The moon shows its real shape for tonight — the actual seas and craters at tonight's true phase. If it's raining outside, rain falls on the screen. It's the weather you can just $\textcolor{#22d3ee}{\textsf{look at}}$.
 
 No app store, no account, nothing to sign up for. Open the link and it works. Like it? Add it to your home screen like any other app.
 
@@ -85,7 +85,7 @@ npm test           # unit tests
 <details><summary><b>🔧 Under the hood</b></summary>
 
 - **Weather:** keyless — Open-Meteo with a MET.no fallback, plus NWS alerts. No API keys.
-- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ. The moon is a lit sphere carrying its real nearside maria and craters at the correct phase — every view (the living sky, Continuum, and Sky Tonight) draws that phase from the same engine, and the moon eases through dawn and dusk and fades behind cloud instead of switching; the night sky draws the Yale Bright Star Catalogue's ~1,100 brightest stars, culled to those actually above your horizon.
+- **Astronomy:** sun/moon/planet/constellation positions computed on-device with [`astronomy-engine`](https://github.com/cosinekitty/astronomy) — the whole sky is shown 360° around (centred on the equator: east left, west right, north at both edges; horizon at the bottom, overhead at the top), so the sun, moon and stars are always on screen at their true direction and height. The sun and moon follow their true altitude *and* azimuth, so their paths genuinely differ. The moon is a lit sphere carrying its real nearside maria and craters at the correct phase — every view (the living sky, Continuum, and Sky Tonight) draws that phase from the same engine, and the moon eases through dawn and dusk and fades behind cloud instead of switching; the night sky draws the Yale Bright Star Catalogue's ~1,100 brightest stars, culled to those actually above your horizon.
 - **Privacy:** precise coordinates live in on-device storage; egress is rounded (≈1 km "surrounding" by default, selectable to ≈11 km "general", or exact). If browser GPS is blocked, it falls back to approximate network location — no prompt required.
 - **Rendering:** layered HTML canvas — a compositor-cached static sky layer with a light animated precipitation layer on top, for smooth, battery-friendly motion. Installed, the sky runs edge-to-edge and fills the whole display (a transparent status bar, so the stars show through the top); in Continuum it gains depth — the stars and moon parallax with device tilt — and scrubbing follows your finger minute by minute, so the sky glides rather than steps.
 - **Accessibility:** WCAG-audited contrast over the animated sky; dark / light / night / auto themes; reduced-motion support.
