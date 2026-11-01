@@ -150,14 +150,19 @@ export function SkyPathPanorama() {
         if (isUp) {
           // elapsed (bright, glowing), revealed up to frac*reveal
           const upto = frac * reveal
+          // body sweeps along the path while revealing, then rests at its TRUE position now —
+          // path samples are ~25 min apart for the moon, so the nearest one can sit ~1° off
+          const resting = reveal >= 1
+          const bp = resting
+            ? { t: frac, x: ax(live.azimuth), y: ay(live.altitude) }
+            : P.reduce((a, c) => (Math.abs(c.t - upto) < Math.abs(a.t - upto) ? c : a))
           const cut = P.filter((p) => p.t <= upto)
+          if (resting) cut.push(bp) // the trail meets the body
           if (cut.length > 1) {
             ctx.save(); ctx.shadowColor = `rgba(${b.glow},0.85)`; ctx.shadowBlur = 10
             ctx.strokeStyle = b.core; ctx.lineWidth = 3.5; ctx.lineCap = 'round'
             ctx.beginPath(); trace(cut); ctx.stroke(); ctx.restore()
           }
-          // body at the revealed position (sweeps to live, then rests)
-          const bp = P.reduce((a, c) => (Math.abs(c.t - upto) < Math.abs(a.t - upto) ? c : a))
           const R = (b.isMoon ? 22 : 28) * (1 + breathe * 0.22)
           const rg = ctx.createRadialGradient(bp.x, bp.y, 0, bp.x, bp.y, R)
           rg.addColorStop(0, b.isMoon ? 'rgba(220,235,255,0.9)' : 'rgba(255,220,150,0.95)')
