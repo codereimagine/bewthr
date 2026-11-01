@@ -7,6 +7,7 @@ interface SkyHeroSunProps {
   sun: SunInfo
   computedAt: Date
   timeFormat: TimeFormat
+  timeZone?: string
 }
 
 // 12 rays at 30° steps, alternating length for a livelier corona.
@@ -22,7 +23,7 @@ const RAYS = Array.from({ length: 12 }, (_, i) => {
   }
 })
 
-export function SkyHeroSun({ sun, computedAt, timeFormat }: SkyHeroSunProps) {
+export function SkyHeroSun({ sun, computedAt, timeFormat, timeZone }: SkyHeroSunProps) {
   const id = useId()
   const gradId = `sunGrad-${id}`
   const coronaId = `sunCorona-${id}`
@@ -61,7 +62,7 @@ export function SkyHeroSun({ sun, computedAt, timeFormat }: SkyHeroSunProps) {
         <div className="sky-hero-name">Sun</div>
         <div className="sky-hero-meta">Sets in {formatCountdown(sun.set, computedAt)}</div>
         <div className="sky-hero-meta-sub">
-          Golden hour {formatTimeRange(sun.goldenHourStart, sun.goldenHourEnd, timeFormat)}
+          Golden hour {formatTimeRange(sun.goldenHourStart, sun.goldenHourEnd, timeFormat, timeZone)}
         </div>
       </div>
     </div>

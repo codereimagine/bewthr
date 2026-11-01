@@ -3,13 +3,17 @@ import type { MoonPhaseName } from './astronomy'
 
 const DASH = '–'
 
-export function formatSunTime(date: Date | null, format: TimeFormat): string {
+// timeZone: the place's IANA zone (weather.hourly.timeZone) — Sky Tonight reads
+// the place's clock, like Continuum; the top bar shows both clocks. Omitted (the
+// zone arrives with the forecast) = the device's zone.
+export function formatSunTime(date: Date | null, format: TimeFormat, timeZone?: string): string {
   if (!date) return '—'
   if (format === '24') {
     return date.toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
+      timeZone,
     })
   }
   return date
@@ -17,6 +21,7 @@ export function formatSunTime(date: Date | null, format: TimeFormat): string {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone,
     })
     .replace(' ', '')
     .toLowerCase()
@@ -26,9 +31,10 @@ export function formatTimeRange(
   start: Date | null,
   end: Date | null,
   format: TimeFormat,
+  timeZone?: string,
 ): string {
-  const a = formatSunTime(start, format)
-  const b = formatSunTime(end, format)
+  const a = formatSunTime(start, format, timeZone)
+  const b = formatSunTime(end, format, timeZone)
   return `${a} ${DASH} ${b}`
 }
 

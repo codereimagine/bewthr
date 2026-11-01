@@ -7,13 +7,14 @@ import { moonShadowPath } from '../lib/skyGlyphs'
 interface SkyMoonProps {
   moon: MoonInfo
   isDay: boolean
+  timeZone?: string
 }
 
-export function SkyMoon({ moon, isDay }: SkyMoonProps) {
+export function SkyMoon({ moon, isDay, timeZone }: SkyMoonProps) {
   const timeFormat = useSettings((s) => s.timeFormat)
   const imagined = useSettings((s) => s.accentMode) === 'imagined'
   const id = useId()
-  const fmt = (d: Date | null) => formatSunTime(d, timeFormat)
+  const fmt = (d: Date | null) => formatSunTime(d, timeFormat, timeZone)
   const pct = Math.round(moon.illumination * 100)
   const waxing = moon.phaseAngle < 180
   const nearlyFull = moon.illumination > 0.99

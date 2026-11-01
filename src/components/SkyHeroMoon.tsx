@@ -7,13 +7,14 @@ import { moonShadowPath } from '../lib/skyGlyphs'
 interface SkyHeroMoonProps {
   moon: MoonInfo
   timeFormat: TimeFormat
+  timeZone?: string
 }
 
 function sentenceCase(s: string): string {
   return s.charAt(0) + s.slice(1).toLowerCase()
 }
 
-export function SkyHeroMoon({ moon, timeFormat }: SkyHeroMoonProps) {
+export function SkyHeroMoon({ moon, timeFormat, timeZone }: SkyHeroMoonProps) {
   const id = useId()
   const gradId = `moonGrad-${id}`
   const clipId = `moonClip-${id}`
@@ -87,7 +88,7 @@ export function SkyHeroMoon({ moon, timeFormat }: SkyHeroMoonProps) {
           {sentenceCase(moon.phaseName)} {'·'} {pct}%
         </div>
         <div className="sky-hero-meta-sub">
-          Rises {formatSunTime(moon.rise, timeFormat)} {'·'} Sets {formatSunTime(moon.set, timeFormat)}
+          Rises {formatSunTime(moon.rise, timeFormat, timeZone)} {'·'} Sets {formatSunTime(moon.set, timeFormat, timeZone)}
         </div>
       </div>
     </div>

@@ -101,7 +101,7 @@ function App() {
         <PlacesStrip />
         {weather?.hourly && <HourlyStrip hourly={weather.hourly} />}
         {weather?.daily && <DailyForecast daily={weather.daily} />}
-        <SkySection />
+        <SkySection timeZone={weather?.hourly?.timeZone} />
       </ErrorBoundary>
       </main>
       <div className="footer">

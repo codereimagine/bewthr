@@ -1,8 +1,22 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import svgr from 'vite-plugin-svgr'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// Content-Security-Policy, written into the built index.html only. In dev, Vite
+// injects CSS as inline <style> tags that `style-src 'self'` would block.
+const CSP = [
+  "default-src 'self'", "script-src 'self'", "style-src 'self'", "font-src 'self'", "img-src 'self'",
+  "connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.weather.gov https://api.met.no https://ipwho.is",
+  "manifest-src 'self'", "worker-src 'self'", "base-uri 'self'", "form-action 'none'", "object-src 'none'",
+].join('; ')
+const csp = (): Plugin => ({
+  name: 'csp-meta',
+  apply: 'build',
+  transformIndexHtml: (html) =>
+    html.replace('<meta name="referrer" content="no-referrer" />', `$&\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
+})
 
 export default defineConfig({
   base: '/bewthr/',
@@ -24,6 +38,7 @@ export default defineConfig({
       filePath.endsWith('.svg') ? false : undefined,
   },
   plugins: [
+    csp(),
     react(),
     tailwindcss(),
     // Weather icons (Meteocons) are rendered as inline live-DOM SVG via the

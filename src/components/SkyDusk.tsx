@@ -8,16 +8,17 @@ import { formatSunTime } from '../lib/skyFormat'
 interface SkyDuskProps {
   sun: SunInfo
   timeFormat: TimeFormat
+  timeZone?: string
 }
 
-export function SkyDusk({ sun, timeFormat }: SkyDuskProps) {
+export function SkyDusk({ sun, timeFormat, timeZone }: SkyDuskProps) {
   const start = sun.goldenHourStart
   const end = sun.astroTwilightEnd
   if (!start || !end || end.getTime() <= start.getTime()) return null
   const span = end.getTime() - start.getTime()
   const pos = (d: Date | null) =>
     d ? Math.max(0, Math.min(100, ((d.getTime() - start.getTime()) / span) * 100)) : null
-  const fmt = (d: Date | null) => formatSunTime(d, timeFormat)
+  const fmt = (d: Date | null) => formatSunTime(d, timeFormat, timeZone)
 
   const marks: { label: string; t: Date | null }[] = [
     { label: 'Golden', t: sun.goldenHourStart },

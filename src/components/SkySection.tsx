@@ -16,7 +16,7 @@ import {
 } from '../lib/skyFormat'
 import './SkySection.css'
 
-export function SkySection() {
+export function SkySection({ timeZone }: { timeZone?: string }) {
   const showSky = useSettings((s) => s.showSky)
   const timeFormat = useSettings((s) => s.timeFormat)
   const { lat, lon } = useActiveCoords()
@@ -35,7 +35,7 @@ export function SkySection() {
   }
 
   const glyph = sky.isDay ? '☀️' : moonPhaseEmoji(sky.moon.phaseName)
-  const setStr = formatSunTime(sky.sun.set, timeFormat)
+  const setStr = formatSunTime(sky.sun.set, timeFormat, timeZone)
   const moonShort = moonPhaseShort(sky.moon.phaseName)
   const moonPct = Math.round(sky.moon.illumination * 100)
   const planetCount = sky.planets.filter((p) => p.aboveHorizon).length
@@ -80,15 +80,15 @@ export function SkySection() {
         {expanded && (
           <div className="sky-body">
             {sky.isDay ? (
-              <SkyHeroSun sun={sky.sun} computedAt={sky.computedAt} timeFormat={timeFormat} />
+              <SkyHeroSun sun={sky.sun} computedAt={sky.computedAt} timeFormat={timeFormat} timeZone={timeZone} />
             ) : (
-              <SkyHeroMoon moon={sky.moon} timeFormat={timeFormat} />
+              <SkyHeroMoon moon={sky.moon} timeFormat={timeFormat} timeZone={timeZone} />
             )}
-            <SkySun sun={sky.sun} isDay={sky.isDay} />
+            <SkySun sun={sky.sun} isDay={sky.isDay} timeZone={timeZone} />
             {/* At night the hero moon already shows phase/illumination/rise/set,
                 so the Moon data block is redundant — show it only in daytime,
                 where the hero is the Sun and moon rise/set is still useful. */}
-            {sky.isDay && <SkyMoon moon={sky.moon} isDay={sky.isDay} />}
+            {sky.isDay && <SkyMoon moon={sky.moon} isDay={sky.isDay} timeZone={timeZone} />}
             {sky.isDay ? (
               <div className="sky-group">
                 <div className="sky-empty">

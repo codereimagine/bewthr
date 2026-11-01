@@ -7,13 +7,14 @@ import { SkyDusk } from './SkyDusk'
 interface SkySunProps {
   sun: SunInfo
   isDay: boolean
+  timeZone?: string
 }
 
-export function SkySun({ sun, isDay }: SkySunProps) {
+export function SkySun({ sun, isDay, timeZone }: SkySunProps) {
   const timeFormat = useSettings((s) => s.timeFormat)
   const imagined = useSettings((s) => s.accentMode) === 'imagined'
-  const fmt = (d: Date | null) => formatSunTime(d, timeFormat)
-  const range = (a: Date | null, b: Date | null) => formatTimeRange(a, b, timeFormat)
+  const fmt = (d: Date | null) => formatSunTime(d, timeFormat, timeZone)
+  const range = (a: Date | null, b: Date | null) => formatTimeRange(a, b, timeFormat, timeZone)
 
   const title = (
     <div className="sky-group-title">
@@ -38,7 +39,7 @@ export function SkySun({ sun, isDay }: SkySunProps) {
       <div className="sky-group">
         {title}
         <SkyPathPanorama />
-        <SkyDusk sun={sun} timeFormat={timeFormat} />
+        <SkyDusk sun={sun} timeFormat={timeFormat} timeZone={timeZone} />
       </div>
     )
   }
