@@ -127,9 +127,16 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
     measure()
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
     ro?.observe(el)
+    // An alert or the update banner above the scrubber moves it without resizing it or the
+    // window, and .cont scrolls once its content overflows: watch every sibling and the scroll.
+    const root = el.parentElement
+    if (root) {
+      for (const ch of Array.from(root.children)) ro?.observe(ch)
+      root.addEventListener('scroll', measure, { passive: true })
+    }
     window.addEventListener('resize', measure)
-    return () => { ro?.disconnect(); window.removeEventListener('resize', measure) }
-  }, [len])
+    return () => { ro?.disconnect(); root?.removeEventListener('scroll', measure); window.removeEventListener('resize', measure) }
+  }, [len, alerts.length])
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
