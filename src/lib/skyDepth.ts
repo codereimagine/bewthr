@@ -1,5 +1,5 @@
-// Continuum sky depth: projection (with an optional horizon line) and, in later
-// helpers, the layered-depth maths. Pure — no DOM, no React.
+// Continuum sky depth: projection (with an optional horizon line), the horizon's anchor,
+// the layered-depth parallax and the time-based tilt easing. Pure — no DOM, no React.
 
 // The view shows the FULL sky: all 360° around (FOV) from the horizon (bottom) to overhead
 // (top). Its centre faces the equator — south in the northern hemisphere, north in the
@@ -27,6 +27,14 @@ export function horizonFor(scrubberTopCss: number, viewportHCss: number, dpr: nu
   return y * dpr
 }
 
+// The panel top (CSS px) the horizon lifts above: the scrubber's real top, but never lower than
+// where it rests at the bottom of the view (viewBottom − bottom padding − its height). Content
+// above it (an expanded alert, the update banner) can push it down or below the fold; the sky's
+// bottom scrim stays pinned to the view, so following it there would sink the moon under the scrim.
+export function horizonAnchor(scrubTopCss: number, scrubHCss: number, viewBottomCss: number, padBottomCss: number): number {
+  return Math.min(scrubTopCss, viewBottomCss - padBottomCss - scrubHCss)
+}
+
 // Continuum depth, far → near. One number per layer drives the tilt/auto-drift offset:
 // farther layers move less, nearer layers more (iOS Spatial Scenes). Order must hold.
 export const DEPTH = { stars: 0.25, body: 0.55, clouds: 1, precip: 1.15 } as const
@@ -38,6 +46,12 @@ export const PARALLAX_PX = 20
 // Device-px offset for a layer at `depth`, given the tilt/drift ax, ay. Vertical is damped.
 export function parallax(depth: number, ax: number, ay: number, dpr: number): { dx: number; dy: number } {
   return { dx: ax * depth * PARALLAX_PX * dpr, dy: ay * depth * PARALLAX_PX * dpr * 0.6 }
+}
+
+// Same as parallax, written into `o` (the per-frame path reuses one object).
+export function parallaxInto(o: { dx: number; dy: number }, depth: number, ax: number, ay: number, dpr: number): { dx: number; dy: number } {
+  o.dx = ax * depth * PARALLAX_PX * dpr; o.dy = ay * depth * PARALLAX_PX * dpr * 0.6
+  return o
 }
 
 // x + dx, kept in [r, W − r] so a disc of radius r never slides off a side edge.

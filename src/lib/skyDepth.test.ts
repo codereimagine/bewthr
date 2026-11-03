@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { project, FACE, FOV, horizonFor, DEPTH, parallax, clampOffset, easeTilt, TILT_TAU_MS, NEUTRAL_TAU_MS } from './skyDepth'
+import { project, FACE, FOV, horizonFor, horizonAnchor, DEPTH, parallax, parallaxInto, clampOffset, easeTilt, TILT_TAU_MS, NEUTRAL_TAU_MS } from './skyDepth'
 
 // Verbatim copy of the pre-refactor LiveSky project (Imagined parity reference).
 function oldProject(az: number, alt: number, W: number, H: number, face = 180) {
@@ -76,5 +76,22 @@ describe('easeTilt', () => {
     expect(easeTilt(0, 1, 16.7, 160)).toBeGreaterThan(0)
     expect(easeTilt(0, 1, 16.7, 160)).toBeLessThan(0.2)
     expect(easeTilt(0, 1, 1e6, 160)).toBeCloseTo(1)
+  })
+})
+
+describe('horizon anchor (panel top the horizon lifts above)', () => {
+  // 844 px view, 20 px bottom padding, 142 px scrubber → it rests at 682
+  it('follows the scrubber at its resting place', () => expect(horizonAnchor(682, 142, 844, 20)).toBe(682))
+  it('follows the scrubber when it sits higher than resting', () => expect(horizonAnchor(600, 142, 844, 20)).toBe(600))
+  it('holds the resting place when content pushes the scrubber lower (alert, banner)', () => expect(horizonAnchor(710.7, 142, 844, 20)).toBe(682))
+  it('holds the resting place when the scrubber is below the fold', () => expect(horizonAnchor(1373, 142, 844, 20)).toBe(682))
+  it('landscape: below the fold → resting place in the visible view', () => expect(horizonAnchor(467, 142, 390, 20)).toBe(228))
+})
+
+describe('parallaxInto (no per-frame allocation)', () => {
+  it('writes the same offset as parallax into the given object', () => {
+    const o = { dx: 0, dy: 0 }
+    expect(parallaxInto(o, 1, 0.7, -0.4, 2)).toBe(o)
+    expect(o).toEqual(parallax(1, 0.7, -0.4, 2))
   })
 })

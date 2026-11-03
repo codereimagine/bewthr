@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { LiveSky, type PlayClock } from './LiveSky'
+import { horizonAnchor } from '../lib/skyDepth'
 import { WX_ACCENT_LIGHT, wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather, HourlyWeather } from '../lib/openMeteo'
 import { useGeo } from '../store/geo'
@@ -114,28 +115,33 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const [dragging, setDragging] = useState(false)
   const [playSpec, setPlaySpec] = useState<PlayClock | null>(null)   // sky clock handed to LiveSky during Play
   const rafRef = useRef<number | null>(null)
-  // Top of the 24h scrubber panel (CSS px): LiveSky lifts its horizon above it.
+  // Top of the 24h scrubber panel (CSS px), held at its resting place when content pushes it lower:
+  // LiveSky lifts its horizon above it.
   const scrubRef = useRef<HTMLElement>(null)
   const [scrubTop, setScrubTop] = useState<number | null>(null)
-  useEffect(() => {
+  // Layout effect: the first measure lands before the first paint, so LiveSky never draws a
+  // frame with the bottom-edge horizon and then hops the bodies up.
+  useLayoutEffect(() => {
     const el = scrubRef.current
-    if (!el) return
+    const root = el?.parentElement
+    if (!el || !root) return
     const measure = () => {
-      const top = el.getBoundingClientRect().top
+      const r = el.getBoundingClientRect()
+      const pad = parseFloat(getComputedStyle(root).paddingBottom) || 0
+      const top = horizonAnchor(r.top, r.height, root.getBoundingClientRect().bottom, pad)
       setScrubTop((p) => (p != null && Math.abs(p - top) < 1 ? p : top))
     }
+    // Later changes (observer fires, scroll) coalesce to one measure per frame.
+    let raf = 0
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; measure() }) }
     measure()
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
-    ro?.observe(el)
     // An alert or the update banner above the scrubber moves it without resizing it or the
     // window, and .cont scrolls once its content overflows: watch every sibling and the scroll.
-    const root = el.parentElement
-    if (root) {
-      for (const ch of Array.from(root.children)) ro?.observe(ch)
-      root.addEventListener('scroll', measure, { passive: true })
-    }
-    window.addEventListener('resize', measure)
-    return () => { ro?.disconnect(); root?.removeEventListener('scroll', measure); window.removeEventListener('resize', measure) }
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null
+    for (const ch of Array.from(root.children)) ro?.observe(ch)
+    root.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => { cancelAnimationFrame(raf); ro?.disconnect(); root.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule) }
   }, [len, alerts.length])
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
