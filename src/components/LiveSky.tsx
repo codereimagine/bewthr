@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon } from '../lib/astronomy'
+import { project, FACE } from '../lib/skyDepth'
 import { projectStars, projectStarsInto, type Star } from '../lib/starField'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
@@ -51,12 +52,8 @@ interface Fix {
   moonFrac: number
 }
 
-// The view shows the FULL sky: all 360° around (FOV) from the horizon (bottom) to overhead
-// (top). Its centre faces the equator — south in the northern hemisphere, north in the
-// southern — where the sun and moon cross the sky; due north/south sits at both side edges.
-const FACE = 180
+// The view geometry (FACE/FOV/project) lives in lib/skyDepth.
 const homeFace = (lat: number | null | undefined) => (lat != null && lat < 0 ? 0 : FACE)
-const FOV = 360
 // The Continuum star field is the REAL Yale Bright Star Catalogue (src/lib/brightStars),
 // projected to local alt/az through the xengine — so actual constellations appear in
 // their true positions and rotate with the real sky as the hour is scrubbed.
@@ -92,11 +89,6 @@ function skyStops(sunAlt: number): [string, string] {
     }
   }
   return [SKY[SKY.length - 1][1], SKY[SKY.length - 1][2]]
-}
-
-function project(az: number, alt: number, W: number, H: number, face = FACE) {
-  const d = ((az - face + 540) % 360) - 180
-  return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: H - (alt / 90) * H, vis: Math.abs(d) < FOV / 2 }
 }
 
 // Celestial fix (sun + moon alt/az + phase) for a place and instant — shared by the
