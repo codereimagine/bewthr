@@ -342,11 +342,13 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
     const noiseTile = document.createElement('canvas'); noiseTile.width = 64; noiseTile.height = 64
     const ntx = noiseTile.getContext('2d')
     let noisePattern: CanvasPattern | null = null
+    let noiseDyn: CanvasPattern | null = null
     if (ntx) {
       const nimg = ntx.createImageData(64, 64)
       for (let i = 0; i < nimg.data.length; i += 4) { const v = (Math.random() * 255) | 0; nimg.data[i] = nimg.data[i + 1] = nimg.data[i + 2] = v; nimg.data[i + 3] = 255 }
       ntx.putImageData(nimg, 0, 0)
       noisePattern = octx.createPattern(noiseTile, 'repeat')
+      if (alive) noiseDyn = ctx.createPattern(noiseTile, 'repeat')   // same tile, for the Continuum sun clip
     }
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -443,52 +445,18 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
       const horizonY = alive ? hzY() : undefined
       const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
       octx.clearRect(0, 0, W, H)
-      const [top0, bot] = skyStops(sunAlt)
-      const top = rainy ? mix(top0, '#0b1526', 0.35) : top0
-      const sky = octx.createLinearGradient(0, 0, 0, H)
-      sky.addColorStop(0, top); sky.addColorStop(1, bot)
-      octx.fillStyle = sky; octx.fillRect(0, 0, W, H)
-      // Dither the sky gradient to kill 24-bit colour banding (very low alpha — perceptible
-      // only as smoother bands, never as grain).
-      if (noisePattern) { octx.save(); octx.globalAlpha = 0.03; octx.fillStyle = noisePattern; octx.fillRect(0, 0, W, H); octx.restore() }
-      // Horizon tint: cool night → warm twilight, blended across sunAlt −10°..−6° (it used to
-      // flip at −8° in one frame).
-      const tw = smooth01((sunAlt + 10) / 4)
-      const hz = octx.createLinearGradient(0, H * 0.55, 0, H)
-      hz.addColorStop(0, 'rgba(0,0,0,0)')
-      hz.addColorStop(1, `rgba(${Math.round(120 + 135 * tw)},${Math.round(140 + 40 * tw)},${Math.round(195 - 75 * tw)},${(0.12 + 0.12 * tw).toFixed(3)})`)
-      octx.fillStyle = hz; octx.fillRect(0, H * 0.55, W, H * 0.45)
-      // Continuum atmospheric depth: the zenith sits a touch deeper than the horizon — a subtle
-      // 3D cue that also lifts header/readout contrast at night. Faint; night only.
-      if (alive && sunAlt < -6) {
-        const dep = octx.createLinearGradient(0, 0, 0, H * 0.5)
-        dep.addColorStop(0, 'rgba(0,0,8,0.22)'); dep.addColorStop(1, 'rgba(0,0,8,0)')
-        octx.fillStyle = dep; octx.fillRect(0, 0, W, H * 0.5)
-      }
-      if (fix && sunAlt > -6) {
-        const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face, horizonY)
-        const g = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, W * 1.1)
-        // Sky glow ramps in from −6° (0 → 0.28 at the horizon) and on to 0.5 by +4° — it used to
-        // switch on at −6° and jump 0.28 → 0.5 at 0° in single frames.
-        const haloA = sunAlt < 0 ? 0.28 * smooth01((sunAlt + 6) / 6) : 0.28 + 0.22 * smooth01(sunAlt / 4)
-        g.addColorStop(0, `rgba(255,225,170,${haloA.toFixed(3)})`); g.addColorStop(1, 'transparent')
-        octx.globalCompositeOperation = 'screen'
-        octx.fillStyle = g; octx.beginPath(); octx.arc(pp.x, pp.y, W * 1.1, 0, 7); octx.fill()
+      const sp = paintSkyBase(octx, noisePattern, sunAlt, fix, face, horizonY)
+      if (sp) {
         // Disc rises over the first ~1.5° and fades with cloud (sunClearRef, eased with the cloud
         // field) instead of popping on at 0° or on a condition change.
         const sunVis = sunClearRef.current < 0 ? (cloudy || rainy || snowy ? 0 : 1) : sunClearRef.current
         const discA = smooth01((sunAlt + 0.5) / 1.5) * sunVis
-        // Continuum (alive) draws the disc on the dynamic layer at its depth; the halo above stays here.
+        // Continuum (alive) draws the disc on the dynamic layer at its depth; the halo stays here.
         if (discA > 0.01 && !alive) {
-          // soft-edged sun glow (not a hard opaque disc blob over the UI)
-          const sr = 30 * DPR
-          const sg = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, sr)
-          sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
-          octx.globalAlpha = discA
-          octx.fillStyle = sg; octx.beginPath(); octx.arc(pp.x, pp.y, sr, 0, 7); octx.fill()
-          octx.globalAlpha = 1
+          octx.globalCompositeOperation = 'screen'
+          paintSunDisc(octx, sp.x, sp.y, discA)
+          octx.globalCompositeOperation = 'source-over'
         }
-        octx.globalCompositeOperation = 'source-over'
       }
       // Imagined stars: the real catalogue at their true alt/az for this place, time and facing
       // (was a fixed decorative pattern). Same brightness, dusk ramp and cloud fade as Continuum,
@@ -548,9 +516,67 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
           octx.fillStyle = crown; octx.beginPath(); octx.arc(lx, ly, rr * 0.8, 0, 7); octx.fill()
         }
       }
-      const vg = octx.createRadialGradient(W / 2, H * 0.42, H * 0.25, W / 2, H * 0.5, H * 0.95)
+      paintVignette(octx)
+    }
+
+    // The static sky stack under the sun: gradient, dither, horizon tint, night depth and the sun
+    // halo (screen). renderStatic paints it full-frame. Continuum's sun disc repaints it inside the
+    // disc's clip on the dynamic layer, so the disc screens over the same sky there and looks exactly
+    // as it did on the static layer, while still drawing under the moon and clouds.
+    // Returns the halo centre (the unparallaxed sun) when the sun is up enough to glow, else null.
+    function paintSkyBase(
+      c: CanvasRenderingContext2D, pat: CanvasPattern | null, sunAlt: number, fix: Fix | null,
+      face: number, horizonY: number | undefined,
+    ): { x: number; y: number } | null {
+      const [top0, bot] = skyStops(sunAlt)
+      const top = rainy ? mix(top0, '#0b1526', 0.35) : top0
+      const sky = c.createLinearGradient(0, 0, 0, H)
+      sky.addColorStop(0, top); sky.addColorStop(1, bot)
+      c.fillStyle = sky; c.fillRect(0, 0, W, H)
+      // Dither the sky gradient to kill 24-bit colour banding (very low alpha — perceptible
+      // only as smoother bands, never as grain).
+      if (pat) { c.save(); c.globalAlpha = 0.03; c.fillStyle = pat; c.fillRect(0, 0, W, H); c.restore() }
+      // Horizon tint: cool night → warm twilight, blended across sunAlt −10°..−6° (it used to
+      // flip at −8° in one frame).
+      const tw = smooth01((sunAlt + 10) / 4)
+      const hz = c.createLinearGradient(0, H * 0.55, 0, H)
+      hz.addColorStop(0, 'rgba(0,0,0,0)')
+      hz.addColorStop(1, `rgba(${Math.round(120 + 135 * tw)},${Math.round(140 + 40 * tw)},${Math.round(195 - 75 * tw)},${(0.12 + 0.12 * tw).toFixed(3)})`)
+      c.fillStyle = hz; c.fillRect(0, H * 0.55, W, H * 0.45)
+      // Continuum atmospheric depth: the zenith sits a touch deeper than the horizon — a subtle
+      // 3D cue that also lifts header/readout contrast at night. Faint; night only.
+      if (alive && sunAlt < -6) {
+        const dep = c.createLinearGradient(0, 0, 0, H * 0.5)
+        dep.addColorStop(0, 'rgba(0,0,8,0.22)'); dep.addColorStop(1, 'rgba(0,0,8,0)')
+        c.fillStyle = dep; c.fillRect(0, 0, W, H * 0.5)
+      }
+      if (!(fix && sunAlt > -6)) return null
+      const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face, horizonY)
+      const g = c.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, W * 1.1)
+      // Sky glow ramps in from −6° (0 → 0.28 at the horizon) and on to 0.5 by +4° — it used to
+      // switch on at −6° and jump 0.28 → 0.5 at 0° in single frames.
+      const haloA = sunAlt < 0 ? 0.28 * smooth01((sunAlt + 6) / 6) : 0.28 + 0.22 * smooth01(sunAlt / 4)
+      g.addColorStop(0, `rgba(255,225,170,${haloA.toFixed(3)})`); g.addColorStop(1, 'transparent')
+      c.globalCompositeOperation = 'screen'
+      c.fillStyle = g; c.beginPath(); c.arc(pp.x, pp.y, W * 1.1, 0, 7); c.fill()
+      c.globalCompositeOperation = 'source-over'
+      return pp
+    }
+
+    // Soft-edged sun glow (not a hard opaque disc blob over the UI). The caller sets 'screen'.
+    function paintSunDisc(c: CanvasRenderingContext2D, x: number, y: number, a: number) {
+      const sr = 30 * DPR
+      const sg = c.createRadialGradient(x, y, 0, x, y, sr)
+      sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
+      c.globalAlpha = a
+      c.fillStyle = sg; c.beginPath(); c.arc(x, y, sr, 0, 7); c.fill()
+      c.globalAlpha = 1
+    }
+
+    function paintVignette(c: CanvasRenderingContext2D) {
+      const vg = c.createRadialGradient(W / 2, H * 0.42, H * 0.25, W / 2, H * 0.5, H * 0.95)
       vg.addColorStop(0, 'transparent'); vg.addColorStop(1, 'rgba(4,6,14,0.3)')
-      octx.fillStyle = vg; octx.fillRect(0, 0, W, H)
+      c.fillStyle = vg; c.fillRect(0, 0, W, H)
     }
 
     // PER FRAME: only the transparent rain layer is cleared + redrawn (+ lightning).
@@ -664,18 +690,27 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
           ctx.globalAlpha = 1
         }
         // Continuum sun disc: moved off the static layer (its halo stays there, unparallaxed) so it
-        // sits at body depth with the moon. Same soft disc and cloud fade (sunClearRef) as Imagined.
+        // sits at body depth with the moon. The dynamic layer is transparent, so to keep the exact
+        // static look (disc screened over the sky, then the vignette) the sky stack is repainted
+        // inside the disc's clip first. Stars never overlap it (disc needs sunAlt > −0.5°, stars < −4°).
         if (fix && sunAlt > -6) {
           const discA = smooth01((sunAlt + 0.5) / 1.5) * Math.max(0, sunClearRef.current)
           if (discA > 0.01) {
             const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face, horizonY)
             const sr = 30 * DPR
             const sx = clampOffset(pp.x, p1.dx * DEPTH.body, sr, W), sy = pp.y + p1.dy * DEPTH.body
-            const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr)
-            sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
-            ctx.globalAlpha = discA
-            ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill()
-            ctx.globalAlpha = 1
+            // Pixel-aligned square clip: no partially covered edge pixels (an anti-aliased circular
+            // clip compounds each repainted layer at partial coverage → a dark fringe). Inside it
+            // the layer is opaque and equals the static stack plus the disc.
+            const bx = Math.floor(sx - sr) - 1, by = Math.floor(sy - sr) - 1, bs = Math.ceil(2 * sr) + 3
+            ctx.save()
+            ctx.beginPath(); ctx.rect(bx, by, bs, bs); ctx.clip()
+            paintSkyBase(ctx, noiseDyn, sunAlt, fix, face, horizonY)
+            ctx.globalCompositeOperation = 'screen'
+            paintSunDisc(ctx, sx, sy, discA)
+            ctx.globalCompositeOperation = 'source-over'
+            paintVignette(ctx)
+            ctx.restore()
           }
         }
         // Continuum moon: drawn here (not the static backdrop) at body depth — nearer than the
