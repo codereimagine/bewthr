@@ -114,6 +114,22 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
   const [dragging, setDragging] = useState(false)
   const [playSpec, setPlaySpec] = useState<PlayClock | null>(null)   // sky clock handed to LiveSky during Play
   const rafRef = useRef<number | null>(null)
+  // Top of the 24h scrubber panel (CSS px): LiveSky lifts its horizon above it.
+  const scrubRef = useRef<HTMLElement>(null)
+  const [scrubTop, setScrubTop] = useState<number | null>(null)
+  useEffect(() => {
+    const el = scrubRef.current
+    if (!el) return
+    const measure = () => {
+      const top = el.getBoundingClientRect().top
+      setScrubTop((p) => (p != null && Math.abs(p - top) < 1 ? p : top))
+    }
+    measure()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    ro?.observe(el)
+    window.addEventListener('resize', measure)
+    return () => { ro?.disconnect(); window.removeEventListener('resize', measure) }
+  }, [len])
   const dragRef = useRef(false)
   const bandRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
@@ -237,7 +253,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
 
   return (
     <div className={`cont${playing ? ' cont--playing' : ''}${bannerVisible ? ' cont--banner' : ''}`} aria-label="Continuum — next 24 hours">
-      <LiveSky current={liveCur} time={skyTime} alive play={playSpec} />
+      <LiveSky current={liveCur} time={skyTime} alive play={playSpec} horizon={scrubTop} />
       <div className="cont-scrim cont-scrim--top" aria-hidden="true" />
       <div className="cont-scrim cont-scrim--bot" aria-hidden="true" />
 
@@ -285,7 +301,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
 
       <div className="cont-grow" />
 
-      <section className="cont-scrubber" aria-label="Next 24 hours">
+      <section ref={scrubRef} className="cont-scrubber" aria-label="Next 24 hours">
         <div className="cont-scrub-head">
           <span className="lbl">// NEXT 24 HOURS</span>
           <span className="lbl">{hours[0].label} → {hours[hours.length - 1].label}</span>

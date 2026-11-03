@@ -16,3 +16,13 @@ export function project(
   const base = horizonY ?? H
   return { x: W / 2 + (d / (FOV / 2)) * (W / 2), y: base - (alt / 90) * base, vis: Math.abs(d) < FOV / 2 }
 }
+
+// Continuum: the horizon sits this many CSS px above the 24h scrubber's top edge, so a
+// low sun/moon/star is drawn in clear sky, not behind the bottom panel. Tuned on glass.
+export const HORIZON_LIFT = 56
+
+// Device-px horizon line: scrubber top lifted, clamped to [45% of the viewport, viewport].
+export function horizonFor(scrubberTopCss: number, viewportHCss: number, dpr: number): number {
+  const y = Math.min(viewportHCss, Math.max(viewportHCss * 0.45, scrubberTopCss - HORIZON_LIFT))
+  return y * dpr
+}

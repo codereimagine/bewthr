@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { project, FACE, FOV } from './skyDepth'
+import { project, FACE, FOV, horizonFor } from './skyDepth'
 
 // Verbatim copy of the pre-refactor LiveSky project (Imagined parity reference).
 function oldProject(az: number, alt: number, W: number, H: number, face = 180) {
@@ -34,4 +34,11 @@ describe('project', () => {
       }
     }
   })
+})
+
+describe('horizonFor', () => {
+  it('lifts above the scrubber', () => expect(horizonFor(700, 844, 1)).toBe(644))
+  it('never above 45% of the screen (landscape / tiny screens)', () => expect(horizonFor(120, 390, 1)).toBeCloseTo(175.5))
+  it('never below the screen', () => expect(horizonFor(2000, 844, 1)).toBe(844))
+  it('scales by DPR', () => expect(horizonFor(700, 844, 3)).toBe(1932))
 })

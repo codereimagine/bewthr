@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon } from '../lib/astronomy'
-import { project, FACE } from '../lib/skyDepth'
+import { project, FACE, horizonFor } from '../lib/skyDepth'
 import { projectStars, projectStarsInto, type Star } from '../lib/starField'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
@@ -41,6 +41,9 @@ interface LiveSkyProps {
   // Continuum Play only: when set, the sky time is driven continuously inside the rAF
   // loop (not via React), so Play glides. Null/omitted = discrete `time` (idle/scrub).
   play?: PlayClock | null
+  // Continuum only: CSS-px y of the panel top. The horizon (alt 0°) is lifted above it so a low
+  // sun/moon/star isn't hidden behind the scrubber. Null/omitted = horizon at the bottom edge.
+  horizon?: number | null
 }
 
 interface Fix {
@@ -116,8 +119,8 @@ const smooth01 = (x: number) => { const t = Math.max(0, Math.min(1, x)); return 
 // The moon whenever it's up, at its true spot in the full-sky view — kept whole on screen
 // (held clear of the side edges by its radius). Only where the view wraps (the side edges,
 // 170°→180° off centre) does it fade, so crossing that seam never jumps it edge to edge.
-function moonOnScreen(az: number, alt: number, W: number, H: number, r: number, face: number) {
-  const p = project(az, alt, W, H, face)
+function moonOnScreen(az: number, alt: number, W: number, H: number, r: number, face: number, horizonY?: number) {
+  const p = project(az, alt, W, H, face, horizonY)
   const off = Math.abs(((az - face + 540) % 360) - 180)
   return { x: Math.max(r, Math.min(W - r, p.x)), y: p.y, a: 1 - smooth01((off - 170) / 10) }
 }
@@ -245,7 +248,7 @@ const DARK_CLEAR: [number, number, number] = [34, 42, 66]
 const cloudCount = (rainy: boolean, overcast: boolean, cloudy: boolean, code: number) =>
   rainy ? 19 : overcast ? 22 : cloudy ? 14 : (code === 1 || code === 2) ? 7 : 0
 
-export function LiveSky({ current, time, alive = false, play = null }: LiveSkyProps) {
+export function LiveSky({ current, time, alive = false, play = null, horizon = null }: LiveSkyProps) {
   const { lat, lon } = useActiveCoords()
   const skyRef = useRef<HTMLCanvasElement>(null)
   const rainRef = useRef<HTMLCanvasElement>(null)
@@ -275,6 +278,10 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
   // The Play clock lives in a ref so changing it never tears down the canvas rAF loop
   // (the main effect below keeps running); the loop reads it each frame.
   useEffect(() => { playRef.current = play ?? null }, [play])
+
+  // Same for the horizon: a ref, so a layout change repaints without tearing the loop down.
+  const horizonRef = useRef<number | null>(null)
+  useEffect(() => { horizonRef.current = horizon ?? null; staticDirtyRef.current = true }, [horizon])
 
   // Recompute the celestial fix when coords / discrete time change. During Play this is
   // superseded every frame by the play clock inside the rAF loop (see frame()).
@@ -357,6 +364,8 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
     const code = current ? current.weather_code : 0
     const overcast = code === 3 || bucket === 'fog'
     let W = 0, H = 0, DPR = 1
+    // Device-px horizon for the alive (Continuum) view; undefined = bottom edge.
+    const hzY = () => (horizonRef.current != null ? horizonFor(horizonRef.current, H / DPR, DPR) : undefined)
     let drops: { x: number; y: number; l: number; s: number }[] = []
     let lastW = -1, lastH = -1
 
@@ -431,6 +440,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
     function renderStatic() {
       const fix = fixRef.current
       const face = homeFace(lat)
+      const horizonY = alive ? hzY() : undefined
       const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
       octx.clearRect(0, 0, W, H)
       const [top0, bot] = skyStops(sunAlt)
@@ -456,7 +466,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         octx.fillStyle = dep; octx.fillRect(0, 0, W, H * 0.5)
       }
       if (fix && sunAlt > -6) {
-        const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face)
+        const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face, horizonY)
         const g = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, W * 1.1)
         // Sky glow ramps in from −6° (0 → 0.28 at the horizon) and on to 0.5 by +4° — it used to
         // switch on at −6° and jump 0.28 → 0.5 at 0° in single frames.
@@ -519,7 +529,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       }
       if (cloudsRef.current.length && !alive) {
         const dayLit = !!(fix && fix.sunAlt > 0)
-        const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H, face) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H, face) : { x: W * 0.5, y: 0, vis: false })
+        const src = dayLit ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H, face, horizonY) : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H, face, horizonY) : { x: W * 0.5, y: 0, vis: false })
         const dark = rainy ? '14,18,30' : overcast ? '22,28,46' : '34,42,66'
         const litCol = dayLit ? 'rgba(240,244,255,0.42)' : 'rgba(150,168,218,0.22)'
         for (const c of cloudsRef.current) {
@@ -601,6 +611,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
       // auto-parallax (plus device tilt, if granted) gives the 3D depth without needing
       // the motion permission. Imagined keeps its static field (alive=false).
       if (alive) {
+        const horizonY = hzY()
         const ax = Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
         const ay = Math.cos(t * 0.19) * 0.3 + tiltRef.current.y * 1.5
         const fix = fixRef.current
@@ -614,8 +625,8 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           // the whole sunrise so the highlight direction never jumps; moon (or straight down)
           // only in deep night, where the crown is darkest and the switch is invisible.
           const src = dayF > 0
-            ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H, face)
-            : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H, face) : { x: W * 0.5, y: 0, vis: false })
+            ? project(fix!.sunAz, Math.max(fix!.sunAlt, 5), W, H, face, horizonY)
+            : (fix && fix.moonAlt > 0 ? project(fix.moonAz, Math.max(fix.moonAlt, 5), W, H, face, horizonY) : { x: W * 0.5, y: 0, vis: false })
           // Cross-fade the cloud base colour toward this condition's target (~0.8s) so a change
           // like cloudy→overcast eases in. darkTarget is captured per effect run (= condition).
           const dc = darkCurRef.current
@@ -659,7 +670,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
           const starArr = starsRef.current, starN = starCountRef.current
           for (let k = 0; k < starN; k++) {
             const st = starArr[k]
-            const pp = project(st.az, st.alt, W, H, face)
+            const pp = project(st.az, st.alt, W, H, face, horizonY)
             if (!pp.vis) continue
             const bf = st.bf                              // 0..1 brightness (real magnitude)
             const depth = 0.14 + bf * 0.95                // wider near↔far spread = deeper 3D field
@@ -693,7 +704,7 @@ export function LiveSky({ current, time, alive = false, play = null }: LiveSkyPr
         // Continuum moon: drawn here (not the static backdrop) so it rides its own parallax
         // depth with device tilt — a nearer, 3D element against the deeper star field.
         if (fix && fix.moonAlt > 0 && moonClearRef.current > 0.01) {
-          const pp = moonOnScreen(fix.moonAz, fix.moonAlt, W, H, 36 * DPR, face)
+          const pp = moonOnScreen(fix.moonAz, fix.moonAlt, W, H, 36 * DPR, face, horizonY)
           if (pp.a > 0.01) {
             const sa = fix.sunAlt
             ctx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonClearRef.current * pp.a
