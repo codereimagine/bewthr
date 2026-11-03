@@ -287,7 +287,7 @@ export function ContinuumView({ hourly, placeName, alerts, onOpenPlaces, onOpenS
         <div className="mono cont-place">{placeName}</div>
       </div>
 
-      <AlertBanner alerts={alerts} />
+      <AlertBanner alerts={alerts} sheet />
 
       <section className="cont-readout ease" aria-live="polite" style={{ textShadow: '0 2px 14px rgba(0,0,0,.45)' }}>
         <div className="cont-when mono ease" style={{ color: acc }}>{i === 0 ? `NOW · ${h.label}` : `${h.label} · +${i}H`}</div>
