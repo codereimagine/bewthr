@@ -26,3 +26,20 @@ export function horizonFor(scrubberTopCss: number, viewportHCss: number, dpr: nu
   const y = Math.min(viewportHCss, Math.max(viewportHCss * 0.45, scrubberTopCss - HORIZON_LIFT))
   return y * dpr
 }
+
+// Continuum depth, far → near. One number per layer drives the tilt/auto-drift offset:
+// farther layers move less, nearer layers more (iOS Spatial Scenes). Order must hold.
+export const DEPTH = { stars: 0.25, body: 0.55, clouds: 1, precip: 1.15 } as const
+
+// CSS px a depth-1 layer moves at full tilt (|ax| = 1).
+export const PARALLAX_PX = 40
+
+// Device-px offset for a layer at `depth`, given the tilt/drift ax, ay. Vertical is damped.
+export function parallax(depth: number, ax: number, ay: number, dpr: number): { dx: number; dy: number } {
+  return { dx: ax * depth * PARALLAX_PX * dpr, dy: ay * depth * PARALLAX_PX * dpr * 0.6 }
+}
+
+// x + dx, kept in [r, W − r] so a disc of radius r never slides off a side edge.
+export function clampOffset(x: number, dx: number, r: number, W: number): number {
+  return Math.max(r, Math.min(W - r, x + dx))
+}

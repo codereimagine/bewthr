@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { project, FACE, FOV, horizonFor } from './skyDepth'
+import { project, FACE, FOV, horizonFor, DEPTH, parallax, clampOffset } from './skyDepth'
 
 // Verbatim copy of the pre-refactor LiveSky project (Imagined parity reference).
 function oldProject(az: number, alt: number, W: number, H: number, face = 180) {
@@ -41,4 +41,20 @@ describe('horizonFor', () => {
   it('never above 45% of the screen (landscape / tiny screens)', () => expect(horizonFor(120, 390, 1)).toBeCloseTo(175.5))
   it('never below the screen', () => expect(horizonFor(2000, 844, 1)).toBe(844))
   it('scales by DPR', () => expect(horizonFor(700, 844, 3)).toBe(1932))
+})
+
+describe('depth layers', () => {
+  it('depth runs far → near', () => {
+    expect(DEPTH.stars).toBeLessThan(DEPTH.body)
+    expect(DEPTH.body).toBeLessThan(DEPTH.clouds)
+    expect(DEPTH.clouds).toBeLessThanOrEqual(DEPTH.precip)
+  })
+  it('nearer layers move more for the same tilt', () => {
+    expect(Math.abs(parallax(DEPTH.clouds, 1, 0, 1).dx)).toBeGreaterThan(Math.abs(parallax(DEPTH.body, 1, 0, 1).dx))
+  })
+  it('zero tilt = zero offset', () => expect(parallax(DEPTH.clouds, 0, 0, 2)).toEqual({ dx: 0, dy: 0 }))
+  it('clampOffset keeps the moon whole at the side edges', () => {
+    expect(clampOffset(390, 40, 36, 400)).toBe(364)
+    expect(clampOffset(10, -40, 36, 400)).toBe(36)
+  })
 })

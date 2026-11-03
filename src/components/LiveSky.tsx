@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon } from '../lib/astronomy'
-import { project, FACE, horizonFor } from '../lib/skyDepth'
+import { project, FACE, horizonFor, DEPTH, parallax, clampOffset } from '../lib/skyDepth'
 import { projectStars, projectStarsInto, type Star } from '../lib/starField'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
@@ -478,7 +478,8 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
         // field) instead of popping on at 0° or on a condition change.
         const sunVis = sunClearRef.current < 0 ? (cloudy || rainy || snowy ? 0 : 1) : sunClearRef.current
         const discA = smooth01((sunAlt + 0.5) / 1.5) * sunVis
-        if (discA > 0.01) {
+        // Continuum (alive) draws the disc on the dynamic layer at its depth; the halo above stays here.
+        if (discA > 0.01 && !alive) {
           // soft-edged sun glow (not a hard opaque disc blob over the UI)
           const sr = 30 * DPR
           const sg = octx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, sr)
@@ -582,12 +583,13 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
         moonClearRef.current += (moonTarget - moonClearRef.current) * fadeK
         if (!alive) staticDirtyRef.current = true
       } else moonClearRef.current = moonTarget
-      // Same for the sun disc — it's on the static layer in both views, so repaint while it fades.
+      // Same for the sun disc. Imagined's is on the static layer, so repaint it while it fades;
+      // Continuum's is drawn per frame on the dynamic layer.
       const sunTarget = cloudy || rainy || snowy ? 0 : 1
       if (sunClearRef.current < 0) sunClearRef.current = sunTarget
       else if (Math.abs(sunTarget - sunClearRef.current) > 0.004) {
         sunClearRef.current += (sunTarget - sunClearRef.current) * fadeK
-        staticDirtyRef.current = true
+        if (!alive) staticDirtyRef.current = true
       } else sunClearRef.current = sunTarget
       // Stars dim behind cloud and go out under overcast/rain on the same timing (they used to
       // switch in one frame while the clouds were still fading in).
@@ -610,6 +612,7 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
       // every frame — alive when idle, not just while scrubbing. A continuous
       // auto-parallax (plus device tilt, if granted) gives the 3D depth without needing
       // the motion permission. Imagined keeps its static field (alive=false).
+      let pdx = 0, pdy = 0   // Continuum precip offset (nearest layer); 0 in Imagined
       if (alive) {
         const horizonY = hzY()
         const ax = Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
@@ -617,6 +620,75 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
         const fix = fixRef.current
         const face = homeFace(lat)
         const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)
+        // Depth, far → near: stars → sun → moon → clouds (precip after, below). Draw order follows
+        // depth so clouds pass in front of the moon and sun; each layer offsets by its DEPTH.
+        const p1 = parallax(1, ax, ay, DPR)   // depth-1 offset; layer offset = p1 × DEPTH (linear)
+        pdx = p1.dx * DEPTH.precip; pdy = p1.dy * DEPTH.precip
+        if (sunAlt < -4 && starClearRef.current > 0.01) {
+          // Twilight fade: stars ease in across the dusk band (sunAlt -4°..-10°) rather than
+          // popping on at -8°, so day↔night glides. starF = 0 at -4°, 1 by -10°.
+          const starF = Math.max(0, Math.min(1, (-4 - sunAlt) / 6))
+          const dim = starClearRef.current * starF
+          const starArr = starsRef.current, starN = starCountRef.current
+          for (let k = 0; k < starN; k++) {
+            const st = starArr[k]
+            const pp = project(st.az, st.alt, W, H, face, horizonY)
+            if (!pp.vis) continue
+            const bf = st.bf                              // 0..1 brightness (real magnitude)
+            const depth = DEPTH.stars * (0.85 + 0.3 * bf)  // small spread by brightness, always < DEPTH.body
+            const x = pp.x + p1.dx * depth
+            const y = pp.y + p1.dy * depth
+            const tw = 0.62 + 0.38 * Math.sin(t * (1.1 + (1 - bf)) + st.ra * 3)
+            const a = (0.4 + bf * 0.6) * dim * tw
+            const s = (1 + bf * 2.2) * DPR
+            if (bf > 0.3) {   // soft glow halo on the brighter stars — they pop forward
+              const gr = ctx.createRadialGradient(x, y, 0, x, y, s * 3.6)
+              gr.addColorStop(0, `rgba(${st.tint},${a * 0.5})`)
+              gr.addColorStop(1, 'transparent')
+              ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, s * 3.6, 0, 7); ctx.fill()
+            }
+            ctx.globalAlpha = a
+            ctx.fillStyle = `rgb(${st.tint})`
+            ctx.fillRect(x - s / 2, y - s / 2, s, s)
+            if (bf > 0.6) {   // diffraction spikes on the brightest — the sparkle
+              const spike = s * (2.4 + 2.4 * tw)
+              ctx.globalAlpha = a * 0.55
+              ctx.strokeStyle = `rgb(${st.tint})`
+              ctx.lineWidth = Math.max(0.6, 0.5 * DPR)
+              ctx.beginPath()
+              ctx.moveTo(x - spike, y); ctx.lineTo(x + spike, y)
+              ctx.moveTo(x, y - spike); ctx.lineTo(x, y + spike)
+              ctx.stroke()
+            }
+          }
+          ctx.globalAlpha = 1
+        }
+        // Continuum sun disc: moved off the static layer (its halo stays there, unparallaxed) so it
+        // sits at body depth with the moon. Same soft disc and cloud fade (sunClearRef) as Imagined.
+        if (fix && sunAlt > -6) {
+          const discA = smooth01((sunAlt + 0.5) / 1.5) * Math.max(0, sunClearRef.current)
+          if (discA > 0.01) {
+            const pp = project(fix.sunAz, Math.max(sunAlt, 1), W, H, face, horizonY)
+            const sr = 30 * DPR
+            const sx = clampOffset(pp.x, p1.dx * DEPTH.body, sr, W), sy = pp.y + p1.dy * DEPTH.body
+            const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr)
+            sg.addColorStop(0, 'rgba(255,248,226,0.9)'); sg.addColorStop(0.5, 'rgba(255,240,200,0.45)'); sg.addColorStop(1, 'transparent')
+            ctx.globalAlpha = discA
+            ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill()
+            ctx.globalAlpha = 1
+          }
+        }
+        // Continuum moon: drawn here (not the static backdrop) at body depth — nearer than the
+        // stars, behind the clouds (drawn next), x clamped so it stays whole at the side edges.
+        if (fix && fix.moonAlt > 0 && moonClearRef.current > 0.01) {
+          const pp = moonOnScreen(fix.moonAz, fix.moonAlt, W, H, 36 * DPR, face, horizonY)
+          if (pp.a > 0.01) {
+            const sa = fix.sunAlt
+            ctx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonClearRef.current * pp.a
+            drawMoon(ctx, clampOffset(pp.x, p1.dx * DEPTH.body, 36 * DPR, W), pp.y + p1.dy * DEPTH.body, 30 * DPR, fix.moonFrac, fix.moonPhase, moonNightF(sa))
+            ctx.globalAlpha = 1
+          }
+        }
         if (cloudsRef.current.length) {
           // Day/night as a SMOOTH ramp across the dawn/dusk band (sunAlt −6°..+6°) so the cloud
           // lighting eases through sunrise instead of popping when the sun crosses the horizon.
@@ -645,10 +717,10 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
             const lap = Math.floor(cx / CLOUD_SPAN)
             const xu = cx - lap * CLOUD_SPAN                 // position within this lap, [0, CLOUD_SPAN)
             const rr = cloudR(c.seed, lap) * DPR
-            const x = (xu - CLOUD_MARGIN) * W + ax * 22 * DPR
+            const x = (xu - CLOUD_MARGIN) * W + p1.dx * DEPTH.clouds
             if (x < -rr * 1.2 || x > W + rr * 1.2) continue  // off-screen — skip the draw
             const co = c.o * (0.82 + 0.18 * Math.sin(t * 0.3 + xu * 11))   // gentle billow
-            const y = cloudH(c.seed, lap) * H * 0.55 + ay * 12 * DPR
+            const y = cloudH(c.seed, lap) * H * 0.55 + p1.dy * DEPTH.clouds
             const base = ctx.createRadialGradient(x, y + rr * 0.15, 0, x, y + rr * 0.15, rr)
             base.addColorStop(0, `rgba(${dark},${co})`); base.addColorStop(1, `rgba(${dark},0)`)
             ctx.fillStyle = base; ctx.beginPath(); ctx.arc(x, y + rr * 0.15, rr, 0, 7); ctx.fill()
@@ -659,56 +731,6 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
             // cloud's c.o is ≥ 0.34, so it is drawn exactly as before.
             ctx.globalAlpha = Math.min(1, c.o / 0.34)
             ctx.fillStyle = crown; ctx.beginPath(); ctx.arc(lx, ly, rr * 0.8, 0, 7); ctx.fill()
-            ctx.globalAlpha = 1
-          }
-        }
-        if (sunAlt < -4 && starClearRef.current > 0.01) {
-          // Twilight fade: stars ease in across the dusk band (sunAlt -4°..-10°) rather than
-          // popping on at -8°, so day↔night glides. starF = 0 at -4°, 1 by -10°.
-          const starF = Math.max(0, Math.min(1, (-4 - sunAlt) / 6))
-          const dim = starClearRef.current * starF
-          const starArr = starsRef.current, starN = starCountRef.current
-          for (let k = 0; k < starN; k++) {
-            const st = starArr[k]
-            const pp = project(st.az, st.alt, W, H, face, horizonY)
-            if (!pp.vis) continue
-            const bf = st.bf                              // 0..1 brightness (real magnitude)
-            const depth = 0.14 + bf * 0.95                // wider near↔far spread = deeper 3D field
-            const x = pp.x + ax * depth * 44 * DPR
-            const y = pp.y + ay * depth * 44 * DPR
-            const tw = 0.62 + 0.38 * Math.sin(t * (1.1 + (1 - bf)) + st.ra * 3)
-            const a = (0.4 + bf * 0.6) * dim * tw
-            const s = (1 + bf * 2.2) * DPR
-            if (bf > 0.3) {   // soft glow halo on the brighter stars — they pop forward
-              const gr = ctx.createRadialGradient(x, y, 0, x, y, s * 3.6)
-              gr.addColorStop(0, `rgba(${st.tint},${a * 0.5})`)
-              gr.addColorStop(1, 'transparent')
-              ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, s * 3.6, 0, 7); ctx.fill()
-            }
-            ctx.globalAlpha = a
-            ctx.fillStyle = `rgb(${st.tint})`
-            ctx.fillRect(x - s / 2, y - s / 2, s, s)
-            if (bf > 0.6) {   // diffraction spikes on the brightest — the sparkle
-              const spike = s * (2.4 + 2.4 * tw)
-              ctx.globalAlpha = a * 0.55
-              ctx.strokeStyle = `rgb(${st.tint})`
-              ctx.lineWidth = Math.max(0.6, 0.5 * DPR)
-              ctx.beginPath()
-              ctx.moveTo(x - spike, y); ctx.lineTo(x + spike, y)
-              ctx.moveTo(x, y - spike); ctx.lineTo(x, y + spike)
-              ctx.stroke()
-            }
-          }
-          ctx.globalAlpha = 1
-        }
-        // Continuum moon: drawn here (not the static backdrop) so it rides its own parallax
-        // depth with device tilt — a nearer, 3D element against the deeper star field.
-        if (fix && fix.moonAlt > 0 && moonClearRef.current > 0.01) {
-          const pp = moonOnScreen(fix.moonAz, fix.moonAlt, W, H, 36 * DPR, face, horizonY)
-          if (pp.a > 0.01) {
-            const sa = fix.sunAlt
-            ctx.globalAlpha = (sa <= 0 ? 1 : Math.max(0.12, 1 - sa / 7)) * moonClearRef.current * pp.a
-            drawMoon(ctx, pp.x + ax * 34 * DPR, pp.y + ay * 34 * DPR, 30 * DPR, fix.moonFrac, fix.moonPhase, moonNightF(sa))
             ctx.globalAlpha = 1
           }
         }
@@ -728,10 +750,13 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
         // old per-frame speed × 60fps, so the fall rate is unchanged.)
         const span = H + 24 * DPR
         if (!snowy) ctx!.beginPath()
+        // Continuum: the field shifts by the precip depth, wrapped (x over W, y over span) so no
+        // edge strip empties. Imagined: pdx = pdy = 0 and x is d.x — the same stream as before.
         for (const d of drops) {
-          const y = (((d.y + d.s * DPR * 60 * t) % span) + span) % span - 20
-          if (snowy) { const x = d.x + Math.sin(y * 0.02) * 8 * DPR; ctx!.beginPath(); ctx!.arc(x, y, d.l, 0, 7); ctx!.fill() }
-          else { ctx!.moveTo(d.x, y); ctx!.lineTo(d.x - slant * d.l, y + d.l) }
+          const y = (((d.y + d.s * DPR * 60 * t + pdy) % span) + span) % span - 20
+          const dx = alive ? (((d.x + pdx) % W) + W) % W : d.x
+          if (snowy) { const x = dx + Math.sin(y * 0.02) * 8 * DPR; ctx!.beginPath(); ctx!.arc(x, y, d.l, 0, 7); ctx!.fill() }
+          else { ctx!.moveTo(dx, y); ctx!.lineTo(dx - slant * d.l, y + d.l) }
         }
         if (!snowy) ctx!.stroke()
         ctx!.restore()
