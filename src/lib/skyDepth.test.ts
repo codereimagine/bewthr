@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { project, FACE, FOV, horizonFor, DEPTH, parallax, clampOffset } from './skyDepth'
+import { project, FACE, FOV, horizonFor, DEPTH, parallax, clampOffset, easeTilt, TILT_TAU_MS, NEUTRAL_TAU_MS } from './skyDepth'
 
 // Verbatim copy of the pre-refactor LiveSky project (Imagined parity reference).
 function oldProject(az: number, alt: number, W: number, H: number, face = 180) {
@@ -56,5 +56,22 @@ describe('depth layers', () => {
   it('clampOffset keeps the moon whole at the side edges', () => {
     expect(clampOffset(390, 40, 36, 400)).toBe(364)
     expect(clampOffset(10, -40, 36, 400)).toBe(36)
+  })
+})
+
+describe('easeTilt', () => {
+  it('exports the time constants', () => {
+    expect(TILT_TAU_MS).toBe(160)
+    expect(NEUTRAL_TAU_MS).toBe(4000)
+  })
+  it('is frame-rate independent', () => {
+    let a = 0; for (let k = 0; k < 6; k++) a = easeTilt(a, 1, 1000 / 60, 160)     // 100ms at 60Hz
+    let b = 0; for (let k = 0; k < 12; k++) b = easeTilt(b, 1, 1000 / 120, 160)   // 100ms at 120Hz
+    expect(a).toBeCloseTo(b, 6)
+  })
+  it('never overshoots, never steps', () => {
+    expect(easeTilt(0, 1, 16.7, 160)).toBeGreaterThan(0)
+    expect(easeTilt(0, 1, 16.7, 160)).toBeLessThan(0.2)
+    expect(easeTilt(0, 1, 1e6, 160)).toBeCloseTo(1)
   })
 })

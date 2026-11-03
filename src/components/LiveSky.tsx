@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useActiveCoords } from '../hooks/useActiveCoords'
 import { getSun, getMoon } from '../lib/astronomy'
-import { project, FACE, horizonFor, DEPTH, parallax, clampOffset } from '../lib/skyDepth'
+import { project, FACE, horizonFor, DEPTH, parallax, clampOffset, easeTilt, TILT_TAU_MS, NEUTRAL_TAU_MS } from '../lib/skyDepth'
 import { projectStars, projectStarsInto, type Star } from '../lib/starField'
 import { wxBucket, type WxBucket } from '../lib/weatherTheme'
 import type { CurrentWeather } from '../lib/openMeteo'
@@ -261,6 +261,8 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
     const id = setInterval(() => setNowTick((n) => n + 1), 60_000)
     return () => clearInterval(id)
   }, [time])
+  const rawTiltRef = useRef<{ g: number; b: number } | null>(null)   // latest sensor γ/β; null until the first event
+  const neutralRef = useRef({ g: 0, b: 0, seeded: false })   // how the phone is held (slow-following)
   const tiltRef = useRef({ x: 0, y: 0 })   // device-tilt parallax (Continuum "alive" only)
   const starsRef = useRef<Star[]>([])
   const starCountRef = useRef(0)      // valid entries in starsRef (play reuses a buffer)
@@ -307,10 +309,10 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
     if (!alive || typeof window === 'undefined') return
     let attached = false
     const onOrient = (e: DeviceOrientationEvent) => {
-      const gx = Math.max(-1, Math.min(1, (e.gamma ?? 0) / 25))
-      const gy = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 25))
-      tiltRef.current.x += (gx - tiltRef.current.x) * 0.12
-      tiltRef.current.y += (gy - tiltRef.current.y) * 0.12
+      // Raw sensor only; frame() eases it by elapsed time and re-centres to how it's held.
+      const raw = rawTiltRef.current
+      if (raw) { raw.g = e.gamma ?? 0; raw.b = e.beta ?? 45 }
+      else rawTiltRef.current = { g: e.gamma ?? 0, b: e.beta ?? 45 }
     }
     const attach = () => { if (!attached) { window.addEventListener('deviceorientation', onOrient); attached = true } }
     const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> } | undefined
@@ -641,8 +643,17 @@ export function LiveSky({ current, time, alive = false, play = null, horizon = n
       let pdx = 0, pdy = 0   // Continuum precip offset (nearest layer); 0 in Imagined
       if (alive) {
         const horizonY = hzY()
-        const ax = Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
-        const ay = Math.cos(t * 0.19) * 0.3 + tiltRef.current.y * 1.5
+        const raw = rawTiltRef.current
+        if (raw && !reduce) {
+          const nu = neutralRef.current, tl = tiltRef.current
+          if (!nu.seeded) { nu.g = raw.g; nu.b = raw.b; nu.seeded = true }   // first sample: no jump
+          else { nu.g = easeTilt(nu.g, raw.g, dtF, NEUTRAL_TAU_MS); nu.b = easeTilt(nu.b, raw.b, dtF, NEUTRAL_TAU_MS) }
+          tl.x = easeTilt(tl.x, Math.max(-1, Math.min(1, (raw.g - nu.g) / 25)), dtF, TILT_TAU_MS)
+          tl.y = easeTilt(tl.y, Math.max(-1, Math.min(1, (raw.b - nu.b) / 25)), dtF, TILT_TAU_MS)
+        }
+        // Reduced motion: no auto-orbit, no tilt.
+        const ax = reduce ? 0 : Math.sin(t * 0.26) * 0.4 + tiltRef.current.x * 1.5   // gentle auto orbit + strong tilt parallax
+        const ay = reduce ? 0 : Math.cos(t * 0.19) * 0.3 + tiltRef.current.y * 1.5
         const fix = fixRef.current
         const face = homeFace(lat)
         const sunAlt = forceAlt != null ? forceAlt : (fix ? fix.sunAlt : -30)

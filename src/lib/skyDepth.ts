@@ -43,3 +43,13 @@ export function parallax(depth: number, ax: number, ay: number, dpr: number): { 
 export function clampOffset(x: number, dx: number, r: number, W: number): number {
   return Math.max(r, Math.min(W - r, x + dx))
 }
+
+// Tilt easing is by elapsed ms (like fadeK), so it feels the same at 60 and 120 fps and
+// whatever the sensor's event rate. TILT_TAU_MS follows the held tilt; NEUTRAL_TAU_MS is the
+// slow re-centre onto how the phone is actually held.
+export const TILT_TAU_MS = 160
+export const NEUTRAL_TAU_MS = 4000
+
+export function easeTilt(cur: number, target: number, dtMs: number, tauMs: number): number {
+  return cur + (target - cur) * (1 - Math.exp(-dtMs / tauMs))
+}
