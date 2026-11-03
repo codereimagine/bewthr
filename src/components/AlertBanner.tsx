@@ -1,20 +1,15 @@
 import { useState, type KeyboardEvent } from 'react'
 import { reflowNwsText, type NWSAlert } from '../lib/nws'
-import { Modal } from './Modal'
 import './AlertBanner.css'
 
 interface AlertBannerProps {
   alerts: NWSAlert[]
-  // Continuum is one fixed screen: a full alert growing in place pushed the 24h slider and Play off it.
-  // `sheet` keeps the card compact (no headline) and opens the full alert in the shared Modal sheet.
-  sheet?: boolean
 }
 
-export function AlertBanner({ alerts, sheet = false }: AlertBannerProps) {
+export function AlertBanner({ alerts }: AlertBannerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   if (alerts.length === 0) return null
-  const open = sheet ? alerts.find((a) => a.id === expandedId) : undefined
 
   return (
     <>
@@ -52,9 +47,9 @@ export function AlertBanner({ alerts, sheet = false }: AlertBannerProps) {
                 <span className="alert-expires">Until {expiresStr}</span>
               </div>
               <div className="alert-event">{alert.event}</div>
-              {!sheet && <div className="alert-headline">{alert.headline}</div>}
+              <div className="alert-headline">{alert.headline}</div>
             </div>
-            {expanded && !sheet && (
+            {expanded && (
               <div className="alert-details">
                 <div className="alert-description">{reflowNwsText(alert.description)}</div>
                 {alert.instruction && (
@@ -65,17 +60,6 @@ export function AlertBanner({ alerts, sheet = false }: AlertBannerProps) {
           </div>
         )
       })}
-      {sheet && (
-        <Modal open={!!open} title={open?.event ?? ''} onClose={() => setExpandedId(null)}>
-          {open && (
-            <div className="alert-details alert-details--sheet">
-              <div className="alert-headline">{open.headline}</div>
-              <div className="alert-description">{reflowNwsText(open.description)}</div>
-              {open.instruction && <div className="alert-instruction">{reflowNwsText(open.instruction)}</div>}
-            </div>
-          )}
-        </Modal>
-      )}
     </>
   )
 }

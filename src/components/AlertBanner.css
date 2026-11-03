@@ -132,7 +132,3 @@
   cursor: pointer;
   padding: 4px 0;
 }
-
-/* Continuum: the full alert reads in the Modal sheet (its body scrolls, no scroll line) */
-.alert-details--sheet { border-top: none; margin-top: 0; padding: 0; }
-.alert-details--sheet .alert-headline { padding: 0 0 12px; }
