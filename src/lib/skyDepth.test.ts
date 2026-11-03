@@ -53,6 +53,9 @@ describe('depth layers', () => {
     expect(Math.abs(parallax(DEPTH.clouds, 1, 0, 1).dx)).toBeGreaterThan(Math.abs(parallax(DEPTH.body, 1, 0, 1).dx))
   })
   it('zero tilt = zero offset', () => expect(parallax(DEPTH.clouds, 0, 0, 2)).toEqual({ dx: 0, dy: 0 }))
+  it('the moon stays within a few % of its true spot at full tilt + drift (|ax| ≤ 1.9, 390px phone)', () => {
+    expect(Math.abs(parallax(DEPTH.body, 1.9, 0, 1).dx)).toBeLessThanOrEqual(390 * 0.06)
+  })
   it('clampOffset keeps the moon whole at the side edges', () => {
     expect(clampOffset(390, 40, 36, 400)).toBe(364)
     expect(clampOffset(10, -40, 36, 400)).toBe(36)

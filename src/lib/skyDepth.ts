@@ -31,8 +31,9 @@ export function horizonFor(scrubberTopCss: number, viewportHCss: number, dpr: nu
 // farther layers move less, nearer layers more (iOS Spatial Scenes). Order must hold.
 export const DEPTH = { stars: 0.25, body: 0.55, clouds: 1, precip: 1.15 } as const
 
-// CSS px a depth-1 layer moves at full tilt (|ax| = 1).
-export const PARALLAX_PX = 40
+// CSS px a depth-1 layer moves at full tilt (|ax| = 1). 20 keeps the moon within a few % of the
+// width of its true spot even at full tilt + drift (|ax| ≈ 1.9 → ~21 px on a 390 px phone).
+export const PARALLAX_PX = 20
 
 // Device-px offset for a layer at `depth`, given the tilt/drift ax, ay. Vertical is damped.
 export function parallax(depth: number, ax: number, ay: number, dpr: number): { dx: number; dy: number } {
