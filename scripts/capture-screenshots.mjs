@@ -16,7 +16,7 @@ mkdirSync(outDir, { recursive: true })
 // render with zero CSS. The preview server serves dist/ with external
 // CSS files, matching what users actually see.
 const URL = 'http://localhost:4173/bewthr/'
-const SEARCH_TERM = 'Hoboken'
+const SEARCH_TERM = 'New York'
 
 const FORMS = {
   mobile: { width: 390, height: 844, deviceScaleFactor: 2 },
